@@ -735,7 +735,7 @@
 
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">สถานที่ / Site งาน <span class="text-red-500">*</span></label>
-          <select id="logSite" required 
+          <select id="logSite" required onchange="handleSiteSelectChange()"
             class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all">
           </select>
         </div>
@@ -1060,28 +1060,40 @@
         <!-- SITE 1 -->
         <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-building-flag text-sky-600"></i> ไซต์ที่ 1 (หลัก/สำนักงาน)</span>
-            <button type="button" onclick="captureCurrentGpsForSite(1)" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-0.5 rounded-lg shadow-2xs">
-              📍 ดึงพิกัดที่นี่
-            </button>
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-building-flag text-sky-600"></i> ไซต์ที่ 1:</span>
+            <input type="text" id="site1Name" required placeholder="เช่น สำนักงานใหญ่" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs w-44 font-bold text-slate-800" />
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="site1Name" required placeholder="เช่น สำนักงานใหญ่" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs" />
-            <input type="text" id="site1Coords" required placeholder="lat,lng" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono" />
+          <div class="space-y-1.5 pt-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 1:</span>
+              <input type="text" id="site1Coords" required placeholder="lat,lng" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureCurrentGpsForSite('site1Coords')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
+            </div>
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 2:</span>
+              <input type="text" id="site1Coords2" placeholder="lat,lng (จุดที่ 2/ลานจอด)" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureCurrentGpsForSite('site1Coords2')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
+            </div>
           </div>
         </div>
 
         <!-- SITE 2 -->
         <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-person-digging text-amber-600"></i> ไซต์ที่ 2 (โครงการ 2)</span>
-            <button type="button" onclick="captureCurrentGpsForSite(2)" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-0.5 rounded-lg shadow-2xs">
-              📍 ดึงพิกัดที่นี่
-            </button>
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-person-digging text-amber-600"></i> ไซต์ที่ 2:</span>
+            <input type="text" id="site2Name" required placeholder="เช่น โครงการ 2" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs w-44 font-bold text-slate-800" />
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="site2Name" required placeholder="เช่น โครงการ 2" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs" />
-            <input type="text" id="site2Coords" required placeholder="lat,lng" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono" />
+          <div class="space-y-1.5 pt-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 1:</span>
+              <input type="text" id="site2Coords" required placeholder="lat,lng" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureCurrentGpsForSite('site2Coords')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
+            </div>
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 2:</span>
+              <input type="text" id="site2Coords2" placeholder="lat,lng (จุดที่ 2/ประตู2)" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureCurrentGpsForSite('site2Coords2')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
+            </div>
           </div>
         </div>
 
@@ -2094,8 +2106,8 @@
         try { return JSON.parse(saved); } catch(e) {}
       }
       return [
-        { name: "สำนักงานใหญ่ (ไซต์ 1)", gpsCoords: "13.756331,100.501849" },
-        { name: "โครงการ 2 (ไซต์ 2)", gpsCoords: "13.789123,100.523456" }
+        { name: "สำนักงานใหญ่ (ไซต์ 1)", gpsCoords: "13.756331,100.501849", gpsCoords2: "13.756800,100.502100" },
+        { name: "โครงการ 2 (ไซต์ 2)", gpsCoords: "13.789123,100.523456", gpsCoords2: "13.789500,100.524000" }
       ];
     }
 
@@ -2115,27 +2127,41 @@
       });
     }
 
-    function checkGeofenceStatus(userGpsStr) {
+    function checkGeofenceStatus(userGpsStr, targetSiteName = "") {
       const userGps = parseGpsCoords(userGpsStr);
       if (!userGps) return { inRange: true, message: "ไม่ได้ระบุพิกัด", closestDistance: 0 };
 
+      const selectedSiteName = targetSiteName || (document.getElementById("logSite") ? document.getElementById("logSite").value : "");
       const sites = getWorkSites();
       const allowedRadius = parseFloat(localStorage.getItem("geofence_allowed_radius") || "500");
       const isStrictBlock = localStorage.getItem("geofence_strict_block") !== "false";
 
-      let minDistance = Infinity;
-      let closestSiteName = "";
+      let siteObj = sites.find(s => s.name === selectedSiteName) || sites[0];
 
-      sites.slice(0, 2).forEach(site => {
-        const siteGps = parseGpsCoords(site.gpsCoords);
-        if (siteGps) {
-          const dist = calculateDistanceMeters(userGps.lat, userGps.lng, siteGps.lat, siteGps.lng);
-          if (dist < minDistance) {
-            minDistance = dist;
-            closestSiteName = site.name;
+      let minDistance = Infinity;
+      let matchedPointLabel = "";
+
+      if (siteObj) {
+        // Point 1
+        const pt1 = parseGpsCoords(siteObj.gpsCoords);
+        if (pt1) {
+          const d1 = calculateDistanceMeters(userGps.lat, userGps.lng, pt1.lat, pt1.lng);
+          if (d1 < minDistance) {
+            minDistance = d1;
+            matchedPointLabel = "จุดเช็คอิน 1";
           }
         }
-      });
+
+        // Point 2
+        const pt2 = parseGpsCoords(siteObj.gpsCoords2);
+        if (pt2) {
+          const d2 = calculateDistanceMeters(userGps.lat, userGps.lng, pt2.lat, pt2.lng);
+          if (d2 < minDistance) {
+            minDistance = d2;
+            matchedPointLabel = "จุดเช็คอิน 2";
+          }
+        }
+      }
 
       if (minDistance === Infinity) {
         return { inRange: true, message: "ยังไม่ได้ตั้งพิกัดไซต์", closestDistance: 0 };
@@ -2143,17 +2169,19 @@
 
       const inRange = minDistance <= allowedRadius;
       const distStr = minDistance >= 1000 ? `${(minDistance / 1000).toFixed(1)} กม.` : `${minDistance} เมตร`;
+      const siteNameDisplay = siteObj ? siteObj.name : "ไซต์งาน";
 
       return {
         inRange,
-        closestSiteName,
+        closestSiteName: siteNameDisplay,
+        matchedPointLabel,
         closestDistance: minDistance,
         distanceFormatted: distStr,
         allowedRadius,
         isStrictBlock,
         message: inRange ? 
-          `✅ อยู่ในพื้นที่เช็คอิน (${closestSiteName} - ห่าง ${distStr})` : 
-          `⚠️ คุณอยู่นอกพื้นที่เช็คอินที่กำหนด! (${closestSiteName} - ห่าง ${distStr} / อนุญาตไม่เกิน ${allowedRadius}ม.)`
+          `✅ อยู่ในพื้นที่เช็คอินของ ${siteNameDisplay} (${matchedPointLabel} - ห่าง ${distStr})` : 
+          `⚠️ คุณอยู่นอกพื้นที่เช็คอินของ ${siteNameDisplay}! (ห่างจากจุดเช็คอิน ${distStr} / อนุญาตไม่เกิน ${allowedRadius}ม.)`
       };
     }
 
@@ -2166,6 +2194,13 @@
         gfContainer.innerHTML = `<div class="mt-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 p-2 rounded-xl border border-emerald-300 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> <span>${status.message}</span></div>`;
       } else {
         gfContainer.innerHTML = `<div class="mt-1 text-[11px] font-bold text-rose-800 bg-rose-100/90 p-2 rounded-xl border border-rose-300 flex items-center gap-1.5 animate-pulse"><i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm"></i> <span>${status.message}</span></div>`;
+      }
+    }
+
+    function handleSiteSelectChange() {
+      const gpsVal = document.getElementById("logGpsCoords") ? document.getElementById("logGpsCoords").value : "";
+      if (gpsVal) {
+        updateGeofenceUIBadge(gpsVal);
       }
     }
 
@@ -2219,9 +2254,11 @@
       const sites = getWorkSites();
       document.getElementById("site1Name").value = sites[0]?.name || "สำนักงานใหญ่ (ไซต์ 1)";
       document.getElementById("site1Coords").value = sites[0]?.gpsCoords || "13.756331,100.501849";
+      document.getElementById("site1Coords2").value = sites[0]?.gpsCoords2 || "13.756800,100.502100";
 
       document.getElementById("site2Name").value = sites[1]?.name || "โครงการ 2 (ไซต์ 2)";
       document.getElementById("site2Coords").value = sites[1]?.gpsCoords || "13.789123,100.523456";
+      document.getElementById("site2Coords2").value = sites[1]?.gpsCoords2 || "13.789500,100.524000";
 
       document.getElementById("geofenceRadius").value = localStorage.getItem("geofence_allowed_radius") || "500";
       document.getElementById("geofenceStrict").value = localStorage.getItem("geofence_strict_block") || "true";
@@ -2229,15 +2266,16 @@
       document.getElementById("sitesModal").classList.remove("hidden");
     }
 
-    function captureCurrentGpsForSite(siteIndex) {
+    function captureCurrentGpsForSite(inputId) {
       if ("geolocation" in navigator) {
         showLoading("กำลังดึงพิกัด GPS ปัจจุบันของคุณ...");
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             hideLoading();
             const coords = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
-            document.getElementById(`site${siteIndex}Coords`).value = coords;
-            showToast(`📍 ดึงพิกัดไซต์ที่ ${siteIndex} (${coords}) สำเร็จ!`, "success");
+            const targetEl = document.getElementById(inputId);
+            if (targetEl) targetEl.value = coords;
+            showToast(`📍 ดึงพิกัด (${coords}) ใส่ช่องสำเร็จ!`, "success");
           },
           (err) => {
             hideLoading();
@@ -2254,11 +2292,13 @@
       e.preventDefault();
       const site1 = {
         name: document.getElementById("site1Name").value.trim() || "สำนักงานใหญ่ (ไซต์ 1)",
-        gpsCoords: document.getElementById("site1Coords").value.trim() || "13.756331,100.501849"
+        gpsCoords: document.getElementById("site1Coords").value.trim() || "13.756331,100.501849",
+        gpsCoords2: document.getElementById("site1Coords2").value.trim() || "13.756800,100.502100"
       };
       const site2 = {
         name: document.getElementById("site2Name").value.trim() || "โครงการ 2 (ไซต์ 2)",
-        gpsCoords: document.getElementById("site2Coords").value.trim() || "13.789123,100.523456"
+        gpsCoords: document.getElementById("site2Coords").value.trim() || "13.789123,100.523456",
+        gpsCoords2: document.getElementById("site2Coords2").value.trim() || "13.789500,100.524000"
       };
 
       const sites = [site1, site2];
@@ -2272,7 +2312,7 @@
 
       closeModal("sitesModal");
       renderSiteDropdowns();
-      showToast("💾 บันทึกตั้งค่าพิกัดเช็คอิน 2 ไซต์เรียบร้อยแล้ว!", "success");
+      showToast("💾 บันทึกตั้งค่า 2 จุดเช็คอินประจำแต่ละไซต์งานเรียบร้อยแล้ว!", "success");
     }
 
     function viewEnlargedPhoto(photoUrl, name) {
