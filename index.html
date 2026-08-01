@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0284c7" />
@@ -244,10 +247,16 @@
         <i id="themeToggleIcon" class="fa-solid fa-circle-half-stroke text-sm"></i>
       </button>
 
-      <!-- ปุ่ม รีเฟรช -->
-      <button id="refreshBtn" onclick="handleRefreshData()" title="รีเฟรชข้อมูล"
+      <!-- ปุ่ม รีเฟรชข้อมูล -->
+      <button id="refreshBtn" onclick="handleRefreshData()" title="กดเพื่อดึงข้อมูลล่าสุดจาก Google Sheets"
         class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white border border-white/15 focus:outline-none">
         <i id="refreshIcon" class="fa-solid fa-rotate text-sm"></i>
+      </button>
+
+      <!-- ปุ่ม บังคับล้างแคชอัปเดตหน้าล่าสุด -->
+      <button onclick="forceClearCacheAndReload()" title="กดเพื่อบังคับล้างแคชโทรศัพท์ & โหลดหน้าล่าสุด"
+        class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400/20 hover:bg-amber-400/40 active:scale-95 transition-all flex items-center justify-center text-amber-300 border border-amber-300/40 focus:outline-none">
+        <i class="fa-solid fa-broom text-xs"></i>
       </button>
     </div>
   </header>
@@ -2601,6 +2610,22 @@
 
     function handleRefreshData() {
       fetchInitialData();
+    }
+
+    function forceClearCacheAndReload() {
+      showLoading("กำลังอัปเดตหน้าเว็บเวอร์ชันล่าสุด & ล้างแคช...");
+      try {
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+          });
+        }
+      } catch(e) {}
+      setTimeout(() => {
+        const timestamp = new Date().getTime();
+        const currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.location.href = currentPath + "?v=" + timestamp;
+      }, 500);
     }
 
     async function postApiRequest(payload) {
