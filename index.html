@@ -1236,6 +1236,7 @@
     function saveWorkSites(sitesArray) {
       localStorage.setItem("app_work_sites_v2", JSON.stringify(sitesArray));
       renderSiteDropdowns();
+      postApiRequest({ action: "saveWorkSites", sites: sitesArray });
     }
 
     function renderSiteDropdowns() {
@@ -2415,6 +2416,16 @@
       localStorage.setItem("geofence_allowed_radius", radius);
       localStorage.setItem("geofence_strict_block", strict);
 
+      // Sync geofence settings to Google Sheets Cloud
+      postApiRequest({
+        action: "saveSettings",
+        settings: {
+          globalEnabled: isGlobalEnabled,
+          radius: radius,
+          strict: strict
+        }
+      });
+
       closeModal("sitesModal");
       renderApp();
       showToast(`💾 บันทึกตั้งค่าการตรวจพิกัด Site งานเรียบร้อยแล้ว!`, "success");
@@ -2573,20 +2584,21 @@
       return str;
     }
 
-    async function fetchInitialData() {
+    async function fetchInitialData(isSilent = false) {
       if (!API_URL) {
         if (employeesData.length === 0) employeesData = DEFAULT_INITIAL_EMPLOYEES;
         renderApp();
         return;
       }
 
-      showLoading("กำลังโหลดข้อมูลจาก Google Sheets...");
+      if (!isSilent) showLoading("กำลังโหลดข้อมูลจาก Google Sheets...");
       const refreshIcon = document.getElementById("refreshIcon");
-      refreshIcon.classList.add("spin-slow");
+      if (refreshIcon) refreshIcon.classList.add("spin-slow");
 
       try {
         const response = await fetch(API_URL);
         const data = await response.json();
+
         if (data.employees && data.employees.length > 0) {
           employeesData = data.employees.map(emp => ({
             ...emp,
@@ -2595,15 +2607,35 @@
         } else if (employeesData.length === 0) {
           employeesData = DEFAULT_INITIAL_EMPLOYEES;
         }
+
         if (data.logs) logsData = data.logs;
-        showToast("อัปเดตข้อมูลจาก Google Sheets สำเร็จ", "success");
+
+        const remoteSites = data.workSites || data.sites;
+        if (remoteSites && remoteSites.length > 0) {
+          localStorage.setItem("app_work_sites_v2", JSON.stringify(remoteSites));
+        }
+
+        const remoteSettings = data.settings || data.geofenceSettings;
+        if (remoteSettings) {
+          if (remoteSettings.globalEnabled !== undefined) {
+            localStorage.setItem("geofence_global_enabled", remoteSettings.globalEnabled ? "true" : "false");
+          }
+          if (remoteSettings.radius !== undefined) {
+            localStorage.setItem("geofence_allowed_radius", String(remoteSettings.radius));
+          }
+          if (remoteSettings.strict !== undefined) {
+            localStorage.setItem("geofence_strict_block", String(remoteSettings.strict));
+          }
+        }
+
+        if (!isSilent) showToast("อัปเดตข้อมูลจาก Google Sheets สำเร็จ", "success");
       } catch (err) {
         console.warn("API Fetch Error:", err);
         if (employeesData.length === 0) employeesData = DEFAULT_INITIAL_EMPLOYEES;
-        showToast("ใช้งานโหมดเครื่อง / ไม่พบ API", "error");
+        if (!isSilent) showToast("ใช้งานโหมดเครื่อง / ไม่พบ API", "error");
       } finally {
-        hideLoading();
-        refreshIcon.classList.remove("spin-slow");
+        if (!isSilent) hideLoading();
+        if (refreshIcon) refreshIcon.classList.remove("spin-slow");
         renderApp();
       }
     }
@@ -2786,7 +2818,7 @@
         <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
           <div>
             <span class="text-slate-400 block text-[10px]">เวลาเข้า - ออก (${formatDate(l.date)}):</span>
-            <span class="font-semibold text-slate-700 font-mono"><i class="fa-regular fa-clock text-sky-500 mr-1"></i>${escapeHtml(l.timeIn)} - ${l.timeOut ? escapeHtml(l.timeOut) : '<span class="text-amber-600 font-bold">กำลังทำงาน</span>'}</span>
+            <span class="font-semibold text-slate-700 font-mono"><i class="fa-regular fa-clock text-sky-500 mr-1"></i>${escapeHtml(formatHHMM(l.timeIn))} - ${l.timeOut ? escapeHtml(formatHHMM(l.timeOut)) : '<span class="text-amber-600 font-bold">กำลังทำงาน</span>'}</span>
           </div>
           <div>
             <span class="text-slate-400 block text-[10px]">ชั่วโมงงาน / OT:</span>
@@ -2928,15 +2960,50 @@
 
     function normalizeDateStr(dateStr) {
       if (!dateStr) return "";
-      if (typeof dateStr === "string" && dateStr.includes("T")) {
-        return dateStr.split("T")[0];
+      let str = String(dateStr).trim();
+      if (str.includes("T")) {
+        str = str.split("T")[0];
       }
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return String(dateStr).trim();
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+      }
+
+      if (str.includes("/") || str.includes("-")) {
+        const separator = str.includes("/") ? "/" : "-";
+        const parts = str.split(separator);
+        if (parts.length === 3) {
+          let day, month, year;
+          if (parts[0].length === 4) {
+            year = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10);
+            day = parseInt(parts[2], 10);
+          } else {
+            day = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10);
+            year = parseInt(parts[2], 10);
+          }
+
+          if (year > 2400) year -= 543;
+
+          if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+            const mStr = String(month).padStart(2, '0');
+            const dStr = String(day).padStart(2, '0');
+            return `${year}-${mStr}-${dStr}`;
+          }
+        }
+      }
+
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        let year = d.getFullYear();
+        if (year > 2400) year -= 543;
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${m}-${day}`;
+      }
+
+      return str;
     }
 
     function getCurrentHHMM() {
@@ -2946,11 +3013,22 @@
 
     function formatHHMM(timeStr) {
       if (!timeStr || timeStr === "" || timeStr === "-") return "";
-      const str = String(timeStr).trim();
+      let str = String(timeStr).trim();
 
-      if (/^\d{1,2}:\d{2}$/.test(str)) {
+      if (str.includes("T")) {
+        const timePart = str.split("T")[1];
+        if (timePart) {
+          const timeSub = timePart.split(".")[0];
+          const parts = timeSub.split(":");
+          if (parts.length >= 2) {
+            return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+          }
+        }
+      }
+
+      if (/^\d{1,2}:\d{2}/.test(str)) {
         const parts = str.split(":");
-        return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+        return `${parts[0].padStart(2, '0')}:${parts[1].substring(0, 2)}`;
       }
 
       try {
@@ -3535,38 +3613,68 @@
         await postApiRequest({ action: "editLog", data: updatedLog });
         showToast("บันทึกการแก้ไขข้อมูลสำเร็จ (อนุมัติเรียบร้อย)!", "success");
       } else {
-        // Check if log already exists for this employee on this date
-        const existingIndex = logsData.findIndex(l => l.employeeName === employeeName && l.date === date);
+        // Check if log already exists for this employee on this date (using normalized strings)
+        const targetLogDate = normalizeDateStr(date);
+        const existingIndex = logsData.findIndex(l => 
+          l.employeeName && l.employeeName.trim() === employeeName.trim() && 
+          normalizeDateStr(l.date) === targetLogDate
+        );
 
-        if (existingIndex !== -1 && actionType === "clock_out") {
-          // Clock Out mode -> Update existing log entry for today
-          targetId = logsData[existingIndex].id;
+        if (existingIndex !== -1) {
           const prevLog = logsData[existingIndex];
-          const updatedLog = {
-            ...prevLog,
-            timeOut: timeOut,
-            site: site || prevLog.site,
-            workHours: workHours,
-            otHours: otHours,
-            totalWage: totalWage,
-            status: status,
-            notes: notes || prevLog.notes,
-            gpsCoords: gpsCoords || prevLog.gpsCoords,
-            photoData: photoData || prevLog.photoData,
-            completed: true,
-            adminApproved: adminApprovedFlag
-          };
-          logsData[existingIndex] = updatedLog;
-          await postApiRequest({ action: "editLog", data: updatedLog });
-          showToast(`🔴 บันทึกเวลาออกงาน (${timeOut} น.) สำเร็จ! (ครบถ้วนประจำวันนี้)`, "success");
+          const isLogCompleted = prevLog.completed === true || prevLog.completed === "true" || (prevLog.timeIn && prevLog.timeOut && prevLog.timeOut !== "" && prevLog.timeOut !== "-");
+
+          if (isLogCompleted && !isAdminMode) {
+            hideLoading();
+            showToast("🔒 คุณได้บันทึกเวลาเข้า-ออกงานประจำวันนี้ครบถ้วนแล้ว (จำกัด 1 รอบ/วัน)", "error");
+            return;
+          }
+
+          if (actionType === "clock_out" || (prevLog.timeIn && !prevLog.timeOut)) {
+            // Clock Out mode -> Update existing log entry for today
+            targetId = prevLog.id;
+            const updatedLog = {
+              ...prevLog,
+              timeOut: formatHHMM(timeOut) || getCurrentHHMM(),
+              site: site || prevLog.site,
+              workHours: workHours,
+              otHours: otHours,
+              totalWage: totalWage,
+              status: status,
+              notes: notes || prevLog.notes,
+              gpsCoords: gpsCoords || prevLog.gpsCoords,
+              photoData: photoData || prevLog.photoData,
+              completed: true,
+              adminApproved: adminApprovedFlag
+            };
+            logsData[existingIndex] = updatedLog;
+            await postApiRequest({ action: "editLog", data: updatedLog });
+            showToast(`🔴 บันทึกเวลาออกงาน (${formatHHMM(timeOut)} น.) สำเร็จ! (ครบถ้วนประจำวันนี้)`, "success");
+          } else {
+            // Clock In mode on existing log -> Update timeIn/site/GPS/photo instead of creating duplicate card!
+            targetId = prevLog.id;
+            const updatedLog = {
+              ...prevLog,
+              site: site || prevLog.site,
+              timeIn: formatHHMM(timeIn) || prevLog.timeIn,
+              notes: notes || prevLog.notes,
+              gpsCoords: gpsCoords || prevLog.gpsCoords,
+              photoData: photoData || prevLog.photoData,
+              adminApproved: adminApprovedFlag
+            };
+            logsData[existingIndex] = updatedLog;
+            await postApiRequest({ action: "editLog", data: updatedLog });
+            showToast(`🟢 อัปเดตเวลาเข้างาน (${formatHHMM(timeIn)} น.) สำหรับวันนี้เรียบร้อยแล้ว`, "success");
+          }
         } else {
           // Clock In mode -> Create new log entry
           const nextNum = logsData.length + 1;
           targetId = `LOG-${String(nextNum).padStart(3, '0')}`;
-          const newLog = { id: targetId, employeeName, site, date, timeIn, timeOut: "", workHours, otHours, totalWage, status, notes, gpsCoords, photoData, completed: false, adminApproved: adminApprovedFlag };
+          const formattedIn = formatHHMM(timeIn) || getCurrentHHMM();
+          const newLog = { id: targetId, employeeName, site, date, timeIn: formattedIn, timeOut: "", workHours, otHours, totalWage, status, notes, gpsCoords, photoData, completed: false, adminApproved: adminApprovedFlag };
           logsData.unshift(newLog);
           await postApiRequest({ action: "addLog", data: newLog });
-          showToast(`🟢 บันทึกเวลาเข้างาน (${timeIn} น.) สำเร็จ!`, "success");
+          showToast(`🟢 บันทึกเวลาเข้างาน (${formattedIn} น.) สำเร็จ!`, "success");
         }
       }
 
@@ -3714,6 +3822,23 @@
       }
       return dateStr;
     }
+
+    // Auto Background Real-time Sync (Silent refresh every 30s + on Tab Focus)
+    setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchInitialData(true);
+      }
+    }, 30000);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        fetchInitialData(true);
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      fetchInitialData(true);
+    });
   </script>
 </body>
 </html>
