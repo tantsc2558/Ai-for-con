@@ -1636,7 +1636,7 @@
       if (empSelect) empSelect.style.display = "none";
 
       const today = new Date();
-      const currentMonthStr = today.toISOString().slice(0, 7);
+      const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
       const monthPicker = document.getElementById("reportMonthPicker");
       if (monthPicker && !monthPicker.value) monthPicker.value = currentMonthStr;
 
@@ -1881,8 +1881,13 @@
 
     function getTodayString(offsetDays = 0) {
       const d = new Date();
-      d.setDate(d.getDate() + offsetDays);
-      return d.toISOString().split('T')[0];
+      if (offsetDays !== 0) {
+        d.setDate(d.getDate() + offsetDays);
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     }
 
     function toggleDarkMode() {
@@ -2596,7 +2601,9 @@
       if (refreshIcon) refreshIcon.classList.add("spin-slow");
 
       try {
-        const response = await fetch(API_URL);
+        const cacheBuster = "t=" + new Date().getTime();
+        const fetchUrl = API_URL.includes("?") ? `${API_URL}&${cacheBuster}` : `${API_URL}?${cacheBuster}`;
+        const response = await fetch(fetchUrl, { cache: "no-store" });
         const data = await response.json();
 
         if (data.employees && data.employees.length > 0) {
@@ -3169,11 +3176,11 @@
       if (existingLog && formIndex !== "" && isAdminMode) {
         document.getElementById("logActionType").value = "edit_admin";
         
-        const rawIn = document.getElementById("logTimeInInput")?.value || existingLog.timeIn || "08:00";
-        const rawOut = document.getElementById("logTimeOutInput")?.value || existingLog.timeOut || "17:00";
+        const rawIn = document.getElementById("logTimeInInput")?.value || existingLog.timeIn || "";
+        const rawOut = document.getElementById("logTimeOutInput")?.value || existingLog.timeOut || "";
 
-        const inVal = formatHHMM(rawIn) || "08:00";
-        const outVal = formatHHMM(rawOut) || "17:00";
+        const inVal = formatHHMM(rawIn);
+        const outVal = formatHHMM(rawOut);
         
         document.getElementById("logTimeIn").value = inVal;
         document.getElementById("logTimeOut").value = outVal;
@@ -3182,7 +3189,10 @@
 
         if (statusCard) statusCard.className = "p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 space-y-1 shadow-sm";
         if (statusTitle) statusTitle.innerHTML = `<i class="fa-solid fa-user-shield text-amber-600 text-sm"></i> โหมดผู้บริหาร: แก้ไขเวลาเข้า-ออกงาน & OT`;
-        if (statusSub) statusSub.innerText = `Admin ปรับแก้ไขเวลาเป็น ${inVal} - ${outVal} น. ได้อย่างอิสระ`;
+        
+        const displayInStr = inVal ? `${inVal} น.` : 'ยังไม่ลง';
+        const displayOutStr = outVal ? `${outVal} น.` : 'ยังไม่ลง';
+        if (statusSub) statusSub.innerText = `Admin ปรับแก้ไขเวลา: เข้า ${displayInStr} | ออก ${displayOutStr}`;
         if (timeTag) {
           timeTag.innerText = `โหมดแก้ไข`;
           timeTag.className = "text-xs font-mono font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-300";
@@ -3455,7 +3465,7 @@
       populateEmployeeDropdown(l.employeeName);
       renderSiteDropdowns();
       document.getElementById("logSite").value = l.site || "สำนักงานใหญ่";
-      document.getElementById("logDate").value = l.date || getTodayString(0);
+      document.getElementById("logDate").value = normalizeDateStr(l.date) || getTodayString(0);
       
       const rawInFormatted = formatHHMM(l.timeIn);
       const rawOutFormatted = formatHHMM(l.timeOut);
@@ -3468,8 +3478,8 @@
         origText.innerText = `เข้า: ${inDisplay} | ออก: ${outDisplay}`;
       }
 
-      const inVal = rawInFormatted || "08:00";
-      const outVal = rawOutFormatted || (l.timeOut ? "17:00" : "");
+      const inVal = rawInFormatted;
+      const outVal = rawOutFormatted;
 
       document.getElementById("logTimeIn").value = inVal;
       document.getElementById("logTimeOut").value = outVal;
@@ -3823,12 +3833,12 @@
       return dateStr;
     }
 
-    // Auto Background Real-time Sync (Silent refresh every 30s + on Tab Focus)
+    // Fast Real-time Background Auto-Sync (Silent refresh every 3 seconds)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         fetchInitialData(true);
       }
-    }, 30000);
+    }, 3000);
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
