@@ -3674,6 +3674,7 @@
             };
             logsData[existingIndex] = updatedLog;
             await postApiRequest({ action: "editLog", data: updatedLog });
+            await fetchInitialData(true);
             showToast(`🟢 อัปเดตเวลาเข้างาน (${formatHHMM(timeIn)} น.) สำหรับวันนี้เรียบร้อยแล้ว`, "success");
           }
         } else {
@@ -3684,6 +3685,7 @@
           const newLog = { id: targetId, employeeName, site, date, timeIn: formattedIn, timeOut: "", workHours, otHours, totalWage, status, notes, gpsCoords, photoData, completed: false, adminApproved: adminApprovedFlag };
           logsData.unshift(newLog);
           await postApiRequest({ action: "addLog", data: newLog });
+          await fetchInitialData(true);
           showToast(`🟢 บันทึกเวลาเข้างาน (${formattedIn} น.) สำเร็จ!`, "success");
         }
       }
@@ -3731,6 +3733,7 @@
         await postApiRequest({ action: "editEmployee", data: updatedEmp });
       }
 
+      await fetchInitialData(true);
       hideLoading();
       closeModal("empModal");
       showToast("บันทึกข้อมูลพนักงานสำเร็จ (อัปเดต Google Sheets แล้ว)", "success");
@@ -3779,6 +3782,7 @@
         showToast("ลบรายชื่อพนักงานเรียบร้อยแล้ว", "success");
       }
 
+      await fetchInitialData(true);
       hideLoading();
       deleteTarget = { type: null, id: null, index: null };
       renderApp();
