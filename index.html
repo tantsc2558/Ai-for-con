@@ -856,7 +856,9 @@
 
         <div class="bg-gradient-to-r from-sky-50 to-indigo-50 p-3 rounded-2xl border border-sky-100 flex items-center justify-between">
           <div>
-            <p class="text-[11px] font-medium text-slate-500">ประมาณการชั่วโมง & ค่าแรง</p>
+            <p class="text-[11px] font-bold text-sky-800 flex items-center gap-1">
+              <i class="fa-solid fa-calculator text-sky-600"></i> ประมาณการชั่วโมง & ค่าแรง <span class="text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded text-[10px] border border-amber-300">(OT คิด 1.5 เท่า)</span>
+            </p>
             <div class="text-xs text-slate-700 mt-0.5">
               ชั่วโมงปกติ: <span id="previewHours" class="font-semibold text-slate-900">0</span> ชม. | OT: <span id="previewOt" class="font-semibold text-amber-600">0</span> ชม.
             </div>
@@ -985,9 +987,9 @@
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">OT (บาท/ชม.) <span class="text-red-500">*</span></label>
-            <input type="number" step="1" min="0" id="empOtRate" required placeholder="100" 
-              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all" />
+            <label class="block text-xs font-medium text-slate-600 mb-1">OT 1.5 เท่า (บาท/ชม.) <span class="text-red-500">*</span></label>
+            <input type="number" step="0.5" min="0" id="empOtRate" required placeholder="93.75" 
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all" />
           </div>
         </div>
 
@@ -1037,7 +1039,7 @@
       </div>
       <div>
         <h3 class="text-base font-semibold text-slate-800">ยืนยันการลบข้อมูล?</h3>
-        <p class="text-xs text-slate-500 mt-1">รายการนี้จะถูกลบออกจากระบบและไม่สามารถกู้คืนได้</p>
+        <p id="deleteModalText" class="text-xs text-slate-500 mt-1">รายการนี้จะถูกลบออกจากระบบและไม่สามารถกู้คืนได้</p>
       </div>
       <div class="flex gap-2.5 pt-1">
         <button onclick="closeModal('deleteModal')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition-colors">
@@ -1176,9 +1178,9 @@
     }
 
     const DEFAULT_INITIAL_EMPLOYEES = [
-      { id: "EMP-001", name: "นายสมชาย ใจดี", phone: "081-234-5678", position: "ช่างเทคนิค", dailyRate: 500, hourlyRate: 62.5, otRate: 100, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
+      { id: "EMP-001", name: "นายสมชาย ใจดี", phone: "081-234-5678", position: "ช่างเทคนิค", dailyRate: 500, hourlyRate: 62.5, otRate: 93.75, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
       { id: "EMP-002", name: "นายวิชัย สมบูรณ์", phone: "089-876-5432", position: "วิศวกรคุมไซต์", dailyRate: 800, hourlyRate: 100, otRate: 150, pinCode: "5678", status: "ทำงานอยู่", notes: "" },
-    { id: "EMP-003", name: "นางสาวอนงค์ มีสุข", phone: "086-555-4321", position: "พนักงานบัญชี", dailyRate: 600, hourlyRate: 75, otRate: 120, pinCode: "9999", status: "ทำงานอยู่", notes: "" }
+      { id: "EMP-003", name: "นางสาวอนงค์ มีสุข", phone: "086-555-4321", position: "พนักงานบัญชี", dailyRate: 600, hourlyRate: 75, otRate: 112.5, pinCode: "9999", status: "ทำงานอยู่", notes: "" }
     ];
 
     function handleDailyRateInput() {
@@ -1191,9 +1193,9 @@
         const hourlyEquiv = Math.round((dailyVal / 8) * 100) / 100;
         if (hourlyInput) hourlyInput.value = hourlyEquiv;
         
-        if (otInput && (!otInput.value || otInput.value === "0" || otInput.value === "100")) {
-          otInput.value = Math.round(hourlyEquiv * 1.5);
-        }
+        // Calculate OT rate strictly at 1.5x multiplier
+        const otEquiv = Math.round((hourlyEquiv * 1.5) * 100) / 100;
+        if (otInput) otInput.value = otEquiv;
       }
     }
 
@@ -3598,6 +3600,12 @@
         return;
       }
       deleteTarget = { type, id, index };
+      const modalText = document.getElementById("deleteModalText");
+      if (modalText) {
+        modalText.innerText = type === "log" ? 
+          "ต้องการลบประวัติการลงเวลานี้ใช่หรือไม่? (รายชื่อพนักงานจะไม่ถูกลบ)" : 
+          "ต้องการลบรายชื่อพนักงานนี้ออกจากระบบใช่หรือไม่?";
+      }
       document.getElementById("deleteModal").classList.remove("hidden");
     }
 
@@ -3608,15 +3616,27 @@
       showLoading("กำลังลบข้อมูลออกจาก Google Sheets...");
 
       if (deleteTarget.type === "log") {
-        logsData.splice(deleteTarget.index, 1);
+        // Strictly remove ONLY from logsData array by matching log ID
+        const targetIdx = logsData.findIndex(l => String(l.id) === String(deleteTarget.id));
+        if (targetIdx !== -1) {
+          logsData.splice(targetIdx, 1);
+        } else if (typeof deleteTarget.index === 'number' && deleteTarget.index >= 0) {
+          logsData.splice(deleteTarget.index, 1);
+        }
         await postApiRequest({ action: "deleteLog", id: deleteTarget.id });
+        showToast("ลบประวัติลงเวลาเรียบร้อยแล้ว (รายชื่อพนักงานยังคงเดิม)", "success");
       } else if (deleteTarget.type === "employee") {
-        employeesData.splice(deleteTarget.index, 1);
+        const targetIdx = employeesData.findIndex(e => String(e.id) === String(deleteTarget.id));
+        if (targetIdx !== -1) {
+          employeesData.splice(targetIdx, 1);
+        } else if (typeof deleteTarget.index === 'number' && deleteTarget.index >= 0) {
+          employeesData.splice(deleteTarget.index, 1);
+        }
         await postApiRequest({ action: "deleteEmployee", id: deleteTarget.id });
+        showToast("ลบรายชื่อพนักงานเรียบร้อยแล้ว", "success");
       }
 
       hideLoading();
-      showToast("ลบข้อมูลออกจากระบบสำเร็จ", "success");
       deleteTarget = { type: null, id: null, index: null };
       renderApp();
     }
