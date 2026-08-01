@@ -773,6 +773,7 @@
               <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                 <i class="fa-solid fa-location-dot text-slate-400"></i> <span id="gpsText">ยังไม่ได้ดึงพิกัด</span>
               </div>
+              <div id="geofenceStatusContainer" class="mt-1"></div>
             </div>
           </div>
           <p class="text-[10px] text-rose-500 font-semibold">⚠️ ต้องถ่ายรูปและระบุพิกัด GPS ก่อนบันทึกเวลางานเสมอ</p>
@@ -1035,6 +1036,87 @@
           ยืนยันลบ
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MANAGE SITES & GEOFENCE (ADMIN) ==================== -->
+  <div id="sitesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl modal-pop max-h-[90vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-3xl">
+        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-location-crosshairs text-sky-600"></i> ตั้งค่าพิกัดเช็คอิน 2 ไซต์ (Geofence)
+        </h3>
+        <button onclick="closeModal('sitesModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="sitesForm" onsubmit="handleSaveGeofence(event)" class="p-6 space-y-4 overflow-y-auto">
+        <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+          <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-amber-600"></i> ระบบป้องกันการแอบลงเวลานอกพื้นที่</p>
+          <p class="text-[11px] text-amber-800">Admin สามารถระบุพิกัด GPS สำหรับให้พนักงานเช็คอินได้สูงสุด 2 ไซต์ หากพนักงานอยู่เกินระยะทางที่กำหนด ระบบจะเด้งเตือนทันที</p>
+        </div>
+
+        <!-- SITE 1 -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-building-flag text-sky-600"></i> ไซต์ที่ 1 (หลัก/สำนักงาน)</span>
+            <button type="button" onclick="captureCurrentGpsForSite(1)" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-0.5 rounded-lg shadow-2xs">
+              📍 ดึงพิกัดที่นี่
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="site1Name" required placeholder="เช่น สำนักงานใหญ่" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs" />
+            <input type="text" id="site1Coords" required placeholder="lat,lng" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono" />
+          </div>
+        </div>
+
+        <!-- SITE 2 -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-person-digging text-amber-600"></i> ไซต์ที่ 2 (โครงการ 2)</span>
+            <button type="button" onclick="captureCurrentGpsForSite(2)" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-0.5 rounded-lg shadow-2xs">
+              📍 ดึงพิกัดที่นี่
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="site2Name" required placeholder="เช่น โครงการ 2" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs" />
+            <input type="text" id="site2Coords" required placeholder="lat,lng" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono" />
+          </div>
+        </div>
+
+        <!-- RADIUS & STRICT CONTROL MODE -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">ระยะทางรัศมีอนุญาต</label>
+            <select id="geofenceRadius" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+              <option value="100">100 เมตร</option>
+              <option value="200">200 เมตร</option>
+              <option value="500" selected>500 เมตร (มาตรฐาน)</option>
+              <option value="1000">1 กิโลเมตร</option>
+              <option value="2000">2 กิโลเมตร</option>
+              <option value="5000">5 กิโลเมตร</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">มาตรการเมื่ออยู่นอกพื้นที่</label>
+            <select id="geofenceStrict" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-rose-700">
+              <option value="true">⛔ ห้ามบันทึก (บล็อกทันที)</option>
+              <option value="false">⚠️ แจ้งเตือน + ติดธงแดงให้ Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="button" onclick="closeModal('sitesModal')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-xl">
+            ยกเลิก
+          </button>
+          <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md shadow-emerald-500/30">
+            💾 บันทึกตั้งค่าพิกัด
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1985,6 +2067,108 @@
       img.src = objectUrl;
     }
 
+    function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const rad = Math.PI / 180;
+      const dLat = (lat2 - lat1) * rad;
+      const dLon = (lon2 - lon1) * rad;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c);
+    }
+
+    function parseGpsCoords(coordsStr) {
+      if (!coordsStr || typeof coordsStr !== "string") return null;
+      const parts = coordsStr.split(",").map(p => parseFloat(p.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        return { lat: parts[0], lng: parts[1] };
+      }
+      return null;
+    }
+
+    function getWorkSites() {
+      const saved = localStorage.getItem("app_work_sites");
+      if (saved) {
+        try { return JSON.parse(saved); } catch(e) {}
+      }
+      return [
+        { name: "สำนักงานใหญ่ (ไซต์ 1)", gpsCoords: "13.756331,100.501849" },
+        { name: "โครงการ 2 (ไซต์ 2)", gpsCoords: "13.789123,100.523456" }
+      ];
+    }
+
+    function renderSiteDropdowns() {
+      const siteSelect = document.getElementById("logSite");
+      if (!siteSelect) return;
+      const currentVal = siteSelect.value;
+      siteSelect.innerHTML = "";
+
+      const sites = getWorkSites();
+      sites.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.name;
+        opt.text = `📍 ${s.name}`;
+        if (s.name === currentVal) opt.selected = true;
+        siteSelect.appendChild(opt);
+      });
+    }
+
+    function checkGeofenceStatus(userGpsStr) {
+      const userGps = parseGpsCoords(userGpsStr);
+      if (!userGps) return { inRange: true, message: "ไม่ได้ระบุพิกัด", closestDistance: 0 };
+
+      const sites = getWorkSites();
+      const allowedRadius = parseFloat(localStorage.getItem("geofence_allowed_radius") || "500");
+      const isStrictBlock = localStorage.getItem("geofence_strict_block") !== "false";
+
+      let minDistance = Infinity;
+      let closestSiteName = "";
+
+      sites.slice(0, 2).forEach(site => {
+        const siteGps = parseGpsCoords(site.gpsCoords);
+        if (siteGps) {
+          const dist = calculateDistanceMeters(userGps.lat, userGps.lng, siteGps.lat, siteGps.lng);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestSiteName = site.name;
+          }
+        }
+      });
+
+      if (minDistance === Infinity) {
+        return { inRange: true, message: "ยังไม่ได้ตั้งพิกัดไซต์", closestDistance: 0 };
+      }
+
+      const inRange = minDistance <= allowedRadius;
+      const distStr = minDistance >= 1000 ? `${(minDistance / 1000).toFixed(1)} กม.` : `${minDistance} เมตร`;
+
+      return {
+        inRange,
+        closestSiteName,
+        closestDistance: minDistance,
+        distanceFormatted: distStr,
+        allowedRadius,
+        isStrictBlock,
+        message: inRange ? 
+          `✅ อยู่ในพื้นที่เช็คอิน (${closestSiteName} - ห่าง ${distStr})` : 
+          `⚠️ คุณอยู่นอกพื้นที่เช็คอินที่กำหนด! (${closestSiteName} - ห่าง ${distStr} / อนุญาตไม่เกิน ${allowedRadius}ม.)`
+      };
+    }
+
+    function updateGeofenceUIBadge(coordsStr) {
+      const gfContainer = document.getElementById("geofenceStatusContainer");
+      if (!gfContainer) return;
+      const status = checkGeofenceStatus(coordsStr);
+      gfContainer.classList.remove("hidden");
+      if (status.inRange) {
+        gfContainer.innerHTML = `<div class="mt-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 p-2 rounded-xl border border-emerald-300 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> <span>${status.message}</span></div>`;
+      } else {
+        gfContainer.innerHTML = `<div class="mt-1 text-[11px] font-bold text-rose-800 bg-rose-100/90 p-2 rounded-xl border border-rose-300 flex items-center gap-1.5 animate-pulse"><i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm"></i> <span>${status.message}</span></div>`;
+      }
+    }
+
     function getGpsLocation() {
       const gpsText = document.getElementById("gpsText");
       if (gpsText) gpsText.innerText = "กำลังดึงพิกัด GPS...";
@@ -2000,6 +2184,7 @@
           gpsText.innerText = `GPS (ประจำไซต์): ${fallbackCoords}`;
           gpsText.className = "text-sky-600 font-medium";
         }
+        updateGeofenceUIBadge(fallbackCoords);
       };
 
       if ("geolocation" in navigator) {
@@ -2013,6 +2198,7 @@
               gpsText.innerText = `GPS: ${lat}, ${lng}`;
               gpsText.className = "text-emerald-600 font-bold";
             }
+            updateGeofenceUIBadge(coordsStr);
           },
           (error) => {
             console.warn("GPS Warning:", error.message);
@@ -2023,6 +2209,70 @@
       } else {
         setFallbackGps();
       }
+    }
+
+    function openSitesModal() {
+      if (!isAdminMode) {
+        showToast("สิทธิ์ Admin เท่านั้นที่ตั้งค่าพิกัดเช็คอินได้", "error");
+        return;
+      }
+      const sites = getWorkSites();
+      document.getElementById("site1Name").value = sites[0]?.name || "สำนักงานใหญ่ (ไซต์ 1)";
+      document.getElementById("site1Coords").value = sites[0]?.gpsCoords || "13.756331,100.501849";
+
+      document.getElementById("site2Name").value = sites[1]?.name || "โครงการ 2 (ไซต์ 2)";
+      document.getElementById("site2Coords").value = sites[1]?.gpsCoords || "13.789123,100.523456";
+
+      document.getElementById("geofenceRadius").value = localStorage.getItem("geofence_allowed_radius") || "500";
+      document.getElementById("geofenceStrict").value = localStorage.getItem("geofence_strict_block") || "true";
+
+      document.getElementById("sitesModal").classList.remove("hidden");
+    }
+
+    function captureCurrentGpsForSite(siteIndex) {
+      if ("geolocation" in navigator) {
+        showLoading("กำลังดึงพิกัด GPS ปัจจุบันของคุณ...");
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            hideLoading();
+            const coords = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+            document.getElementById(`site${siteIndex}Coords`).value = coords;
+            showToast(`📍 ดึงพิกัดไซต์ที่ ${siteIndex} (${coords}) สำเร็จ!`, "success");
+          },
+          (err) => {
+            hideLoading();
+            showToast("ไม่สามารถดึงพิกัด GPS ได้ กรุณากรอกพิกัดด้วยตนเอง", "error");
+          },
+          { enableHighAccuracy: true, timeout: 6000 }
+        );
+      } else {
+        showToast("เบราว์เซอร์ไม่รองรับการดึงพิกัด GPS", "error");
+      }
+    }
+
+    function handleSaveGeofence(e) {
+      e.preventDefault();
+      const site1 = {
+        name: document.getElementById("site1Name").value.trim() || "สำนักงานใหญ่ (ไซต์ 1)",
+        gpsCoords: document.getElementById("site1Coords").value.trim() || "13.756331,100.501849"
+      };
+      const site2 = {
+        name: document.getElementById("site2Name").value.trim() || "โครงการ 2 (ไซต์ 2)",
+        gpsCoords: document.getElementById("site2Coords").value.trim() || "13.789123,100.523456"
+      };
+
+      const sites = [site1, site2];
+      localStorage.setItem("app_work_sites", JSON.stringify(sites));
+
+      const radius = document.getElementById("geofenceRadius").value;
+      const strict = document.getElementById("geofenceStrict").value;
+
+      localStorage.setItem("geofence_allowed_radius", radius);
+      localStorage.setItem("geofence_strict_block", strict);
+
+      closeModal("sitesModal");
+      renderSiteDropdowns();
+      showToast("💾 บันทึกตั้งค่าพิกัดเช็คอิน 2 ไซต์เรียบร้อยแล้ว!", "success");
     }
 
     function viewEnlargedPhoto(photoUrl, name) {
@@ -2371,7 +2621,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-0.5">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium text-[11px] border ${badgeClass}">
               <span class="w-1.5 h-1.5 rounded-full bg-current"></span> ${escapeHtml(l.status)}
             </span>
@@ -2380,6 +2630,14 @@
                 <i class="fa-solid fa-location-dot text-rose-500"></i> แผนที่ GPS
               </a>
             ` : ''}
+            ${(() => {
+              if (!l.gpsCoords) return '';
+              const gf = checkGeofenceStatus(l.gpsCoords);
+              if (!gf.inRange) {
+                return `<span class="text-[10px] font-extrabold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-300 flex items-center gap-1 animate-pulse"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> เช็คอินนอกพื้นที่ (${gf.distanceFormatted})</span>`;
+              }
+              return `<span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-600"></i> ในพื้นที่ (${gf.closestSiteName})</span>`;
+            })()}
           </div>
 
           <div class="text-right">
@@ -2565,6 +2823,14 @@
             gpsText.className = "text-rose-600 font-bold animate-pulse";
           }
           getGpsLocation();
+          return false;
+        }
+
+        // 3. Mandatory Geofence validation: Must be within allowed radius
+        const gfStatus = checkGeofenceStatus(gpsCoords);
+        if (!gfStatus.inRange && gfStatus.isStrictBlock) {
+          showToast(`⛔ ไม่สามารถลงเวลาได้: พิกัดของคุณอยู่นอกพื้นที่เช็คอินที่กำหนด (${gfStatus.distanceFormatted})`, "error");
+          updateGeofenceUIBadge(gpsCoords);
           return false;
         }
       }
@@ -3030,6 +3296,14 @@
         // MANDATORY VALIDATION 2: GPS required
         if (!gpsCoords || gpsCoords === "" || gpsCoords === "ยังไม่ได้ดึงพิกัด" || gpsCoords === "กำลังดึงพิกัด GPS..." || gpsCoords === "ไม่สามารถดึง GPS ได้") {
           showToast("⚠️ ไม่อนุญาตให้บันทึก: กรุณากดดึงพิกัด GPS เช็คอินสถานที่ก่อน!", "error");
+          return;
+        }
+
+        // MANDATORY VALIDATION 3: Geofence radius check
+        const gfStatus = checkGeofenceStatus(gpsCoords);
+        if (!gfStatus.inRange && gfStatus.isStrictBlock) {
+          showToast(`⛔ ไม่อนุญาตให้บันทึก: พิกัดของคุณอยู่นอกพื้นที่เช็คอินที่กำหนด (${gfStatus.distanceFormatted})`, "error");
+          updateGeofenceUIBadge(gpsCoords);
           return;
         }
       }
