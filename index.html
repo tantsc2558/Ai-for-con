@@ -791,18 +791,29 @@
         <input type="hidden" id="logActionType" value="clock_in" />
 
         <!-- ADMIN ONLY: EDITABLE TIME IN & TIME OUT CONTROLS -->
-        <div id="adminTimeControlsContainer" class="bg-amber-50/80 p-3 rounded-2xl border border-amber-200 space-y-2" style="display: none;">
+        <div id="adminTimeControlsContainer" class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 space-y-2.5" style="display: none;">
           <div class="flex items-center justify-between text-xs font-bold text-amber-900">
             <span><i class="fa-solid fa-user-shield text-amber-600 mr-1"></i> แก้ไขเวลาเข้า-ออกงาน (เฉพาะ Admin)</span>
           </div>
+
+          <!-- ORIGINAL RECORDED TIME REFERENCE BADGE FOR ADMIN -->
+          <div id="originalTimeBadge" class="p-2.5 bg-amber-100/90 rounded-xl border border-amber-300 text-xs font-semibold text-amber-950 flex flex-wrap items-center justify-between gap-1 shadow-2xs">
+            <span class="flex items-center gap-1.5 text-amber-900">
+              <i class="fa-solid fa-clock-rotate-left text-amber-700"></i> เวลาเดิมที่ลงไว้ในระบบ:
+            </span>
+            <span id="originalTimeText" class="font-mono font-extrabold text-amber-900 bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-2xs">
+              เข้า: --:-- น. | ออก: --:-- น.
+            </span>
+          </div>
+
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-[11px] font-medium text-amber-800 mb-1">เวลาเข้างาน</label>
+              <label class="block text-[11px] font-medium text-amber-800 mb-1">เวลาเข้างาน (แก้ไข)</label>
               <input type="time" id="logTimeInInput" onchange="syncAdminTimes()"
                 class="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40" />
             </div>
             <div>
-              <label class="block text-[11px] font-medium text-amber-800 mb-1">เวลาออกงาน</label>
+              <label class="block text-[11px] font-medium text-amber-800 mb-1">เวลาออกงาน (แก้ไข)</label>
               <input type="time" id="logTimeOutInput" onchange="syncAdminTimes()"
                 class="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40" />
             </div>
@@ -1039,12 +1050,12 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: MANAGE SITES & GEOFENCE (ADMIN) ==================== -->
+  <!-- ==================== MODAL: MANAGE DYNAMIC SITES & GEOFENCE (ADMIN) ==================== -->
   <div id="sitesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl modal-pop max-h-[90vh] flex flex-col">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl modal-pop max-h-[90vh] flex flex-col">
       <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-3xl">
         <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-location-crosshairs text-sky-600"></i> ตั้งค่าพิกัดเช็คอิน 2 ไซต์ (Geofence)
+          <i class="fa-solid fa-map-location-dot text-sky-600"></i> จัดการ Site งาน & พิกัด 2 จุด (Admin)
         </h3>
         <button onclick="closeModal('sitesModal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm transition-colors">
           <i class="fa-solid fa-xmark"></i>
@@ -1053,52 +1064,36 @@
 
       <form id="sitesForm" onsubmit="handleSaveGeofence(event)" class="p-6 space-y-4 overflow-y-auto">
         <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
-          <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-amber-600"></i> ระบบป้องกันการแอบลงเวลานอกพื้นที่</p>
-          <p class="text-[11px] text-amber-800">Admin สามารถระบุพิกัด GPS สำหรับให้พนักงานเช็คอินได้สูงสุด 2 ไซต์ หากพนักงานอยู่เกินระยะทางที่กำหนด ระบบจะเด้งเตือนทันที</p>
+          <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-amber-600"></i> ระบบจัดการ Site งาน & พิกัดเช็คอิน</p>
+          <p class="text-[11px] text-amber-800">Admin สามารถเปิด/ปิดระบบพิกัด GPS หรือติ๊กเลือกบังคับตรวจพิกัดประจำแต่ละไซต์งานได้อย่างยืดหยุ่น</p>
         </div>
 
-        <!-- SITE 1 -->
-        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-building-flag text-sky-600"></i> ไซต์ที่ 1:</span>
-            <input type="text" id="site1Name" required placeholder="เช่น สำนักงานใหญ่" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs w-44 font-bold text-slate-800" />
+        <!-- GLOBAL GEOFENCE SWITCH -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between shadow-2xs">
+          <div class="space-y-0.5">
+            <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-location-crosshairs text-sky-600"></i> เปิด/ปิด ระบบตรวจพิกัด GPS รวม
+            </span>
+            <p class="text-[10px] text-slate-500">หากปิด สมาชิกทุกคนสามารถบันทึกเวลาได้จากทุกสถานที่</p>
           </div>
-          <div class="space-y-1.5 pt-1">
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 1:</span>
-              <input type="text" id="site1Coords" required placeholder="lat,lng" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
-              <button type="button" onclick="captureCurrentGpsForSite('site1Coords')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
-            </div>
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 2:</span>
-              <input type="text" id="site1Coords2" placeholder="lat,lng (จุดที่ 2/ลานจอด)" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
-              <button type="button" onclick="captureCurrentGpsForSite('site1Coords2')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
-            </div>
-          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="geofenceGlobalEnabled" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
         </div>
 
-        <!-- SITE 2 -->
-        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-person-digging text-amber-600"></i> ไซต์ที่ 2:</span>
-            <input type="text" id="site2Name" required placeholder="เช่น โครงการ 2" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs w-44 font-bold text-slate-800" />
-          </div>
-          <div class="space-y-1.5 pt-1">
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 1:</span>
-              <input type="text" id="site2Coords" required placeholder="lat,lng" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
-              <button type="button" onclick="captureCurrentGpsForSite('site2Coords')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
-            </div>
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[11px] font-medium text-slate-600 w-16">จุดเช็คอิน 2:</span>
-              <input type="text" id="site2Coords2" placeholder="lat,lng (จุดที่ 2/ประตู2)" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
-              <button type="button" onclick="captureCurrentGpsForSite('site2Coords2')" class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">📍ดึงพิกัด</button>
-            </div>
-          </div>
+        <!-- DYNAMIC SITE CARDS CONTAINER -->
+        <div id="dynamicSitesListContainer" class="space-y-3">
+          <!-- Dynamically populated site card elements -->
         </div>
+
+        <button type="button" onclick="addNewSiteToForm()" class="w-full py-2.5 bg-sky-50 hover:bg-sky-100 active:scale-98 text-sky-700 font-bold text-xs rounded-2xl border border-dashed border-sky-300 flex items-center justify-center gap-2 transition-all shadow-2xs">
+          <i class="fa-solid fa-circle-plus text-sky-600 text-sm"></i>
+          <span>+ เพิ่ม Site งานใหม่</span>
+        </button>
 
         <!-- RADIUS & STRICT CONTROL MODE -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">ระยะทางรัศมีอนุญาต</label>
             <select id="geofenceRadius" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
@@ -1125,7 +1120,7 @@
             ยกเลิก
           </button>
           <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md shadow-emerald-500/30">
-            💾 บันทึกตั้งค่าพิกัด
+            💾 บันทึกการเปลี่ยนแปลงทั้งหมด
           </button>
         </div>
       </form>
@@ -2100,43 +2095,36 @@
       return null;
     }
 
-    function getWorkSites() {
-      const saved = localStorage.getItem("app_work_sites");
-      if (saved) {
-        try { return JSON.parse(saved); } catch(e) {}
-      }
-      return [
-        { name: "สำนักงานใหญ่ (ไซต์ 1)", gpsCoords: "13.756331,100.501849", gpsCoords2: "13.756800,100.502100" },
-        { name: "โครงการ 2 (ไซต์ 2)", gpsCoords: "13.789123,100.523456", gpsCoords2: "13.789500,100.524000" }
-      ];
-    }
 
-    function renderSiteDropdowns() {
-      const siteSelect = document.getElementById("logSite");
-      if (!siteSelect) return;
-      const currentVal = siteSelect.value;
-      siteSelect.innerHTML = "";
-
-      const sites = getWorkSites();
-      sites.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s.name;
-        opt.text = `📍 ${s.name}`;
-        if (s.name === currentVal) opt.selected = true;
-        siteSelect.appendChild(opt);
-      });
-    }
 
     function checkGeofenceStatus(userGpsStr, targetSiteName = "") {
-      const userGps = parseGpsCoords(userGpsStr);
-      if (!userGps) return { inRange: true, message: "ไม่ได้ระบุพิกัด", closestDistance: 0 };
+      const globalEnabled = localStorage.getItem("geofence_global_enabled") !== "false";
+      if (!globalEnabled) {
+        return { 
+          inRange: true, 
+          isEnabled: false, 
+          message: "🔓 ระบบเปิดให้เช็คอินได้จากทุกสถานที่ (ปิดการตรวจ GPS)" 
+        };
+      }
 
       const selectedSiteName = targetSiteName || (document.getElementById("logSite") ? document.getElementById("logSite").value : "");
       const sites = getWorkSites();
+      let siteObj = sites.find(s => s.name === selectedSiteName) || sites[0];
+
+      if (siteObj && siteObj.enableGeofence === false) {
+        return { 
+          inRange: true, 
+          isEnabled: false, 
+          closestSiteName: siteObj.name,
+          message: `🔓 ไซต์ "${siteObj.name}" อนุญาตให้เช็คอินได้จากทุกสถานที่` 
+        };
+      }
+
+      const userGps = parseGpsCoords(userGpsStr);
+      if (!userGps) return { inRange: true, message: "ไม่ได้ระบุพิกัด", closestDistance: 0 };
+
       const allowedRadius = parseFloat(localStorage.getItem("geofence_allowed_radius") || "500");
       const isStrictBlock = localStorage.getItem("geofence_strict_block") !== "false";
-
-      let siteObj = sites.find(s => s.name === selectedSiteName) || sites[0];
 
       let minDistance = Infinity;
       let matchedPointLabel = "";
@@ -2173,6 +2161,7 @@
 
       return {
         inRange,
+        isEnabled: true,
         closestSiteName: siteNameDisplay,
         matchedPointLabel,
         closestDistance: minDistance,
@@ -2246,19 +2235,18 @@
       }
     }
 
+    let editingSitesList = [];
+
     function openSitesModal() {
       if (!isAdminMode) {
         showToast("สิทธิ์ Admin เท่านั้นที่ตั้งค่าพิกัดเช็คอินได้", "error");
         return;
       }
-      const sites = getWorkSites();
-      document.getElementById("site1Name").value = sites[0]?.name || "สำนักงานใหญ่ (ไซต์ 1)";
-      document.getElementById("site1Coords").value = sites[0]?.gpsCoords || "13.756331,100.501849";
-      document.getElementById("site1Coords2").value = sites[0]?.gpsCoords2 || "13.756800,100.502100";
+      editingSitesList = JSON.parse(JSON.stringify(getWorkSites()));
+      renderDynamicSitesForm();
 
-      document.getElementById("site2Name").value = sites[1]?.name || "โครงการ 2 (ไซต์ 2)";
-      document.getElementById("site2Coords").value = sites[1]?.gpsCoords || "13.789123,100.523456";
-      document.getElementById("site2Coords2").value = sites[1]?.gpsCoords2 || "13.789500,100.524000";
+      const isGlobalEnabled = localStorage.getItem("geofence_global_enabled") !== "false";
+      document.getElementById("geofenceGlobalEnabled").checked = isGlobalEnabled;
 
       document.getElementById("geofenceRadius").value = localStorage.getItem("geofence_allowed_radius") || "500";
       document.getElementById("geofenceStrict").value = localStorage.getItem("geofence_strict_block") || "true";
@@ -2266,15 +2254,117 @@
       document.getElementById("sitesModal").classList.remove("hidden");
     }
 
-    function captureCurrentGpsForSite(inputId) {
+    function renderDynamicSitesForm() {
+      const container = document.getElementById("dynamicSitesListContainer");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (editingSitesList.length === 0) {
+        editingSitesList = [
+          { name: "สำนักงานใหญ่", gpsCoords: "13.756331,100.501849", gpsCoords2: "13.756800,100.502100", enableGeofence: true }
+        ];
+      }
+
+      editingSitesList.forEach((site, index) => {
+        const siteCard = document.createElement("div");
+        siteCard.className = "bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 relative";
+        siteCard.innerHTML = `
+          <div class="flex justify-between items-center gap-2">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+              <i class="fa-solid fa-building-flag text-sky-600"></i> ไซต์ที่ ${index + 1}:
+            </span>
+            <input type="text" value="${escapeHtml(site.name)}" onchange="updateEditingSiteField(${index}, 'name', this.value)"
+              required placeholder="เช่น สำนักงานใหญ่ / โครงการ 3" 
+              class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs flex-1 font-bold text-slate-800" />
+            
+            ${editingSitesList.length > 1 ? `
+              <button type="button" onclick="removeSiteFromForm(${index})" title="ลบไซต์นี้"
+                class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold border border-rose-200 shrink-0">
+                <i class="fa-solid fa-trash-can mr-1"></i> ลบ
+              </button>
+            ` : ''}
+          </div>
+
+          <div class="flex items-center justify-between pt-1 pb-0.5 border-t border-slate-200/60">
+            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+              <input type="checkbox" ${site.enableGeofence !== false ? 'checked' : ''} 
+                onchange="updateEditingSiteField(${index}, 'enableGeofence', this.checked)"
+                class="w-4 h-4 text-sky-600 rounded focus:ring-sky-500 border-slate-300" />
+              <span>บังคับตรวจพิกัด GPS สำหรับไซต์นี้</span>
+            </label>
+            <span class="text-[10px] ${site.enableGeofence !== false ? 'text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200' : 'text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full'}">
+              ${site.enableGeofence !== false ? '🔒 บังคับพิกัด' : '🔓 เช็คอินได้ทุกที่'}
+            </span>
+          </div>
+
+          <div class="space-y-1.5 pt-1 border-t border-slate-200/60 ${site.enableGeofence === false ? 'opacity-40 pointer-events-none' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-20 shrink-0">จุดเช็คอิน 1:</span>
+              <input type="text" id="site_${index}_coords1" value="${escapeHtml(site.gpsCoords || '')}" onchange="updateEditingSiteField(${index}, 'gpsCoords', this.value)"
+                placeholder="lat,lng" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureGpsToSiteField(${index}, 'site_${index}_coords1', 'gpsCoords')" 
+                class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">
+                📍ดึงพิกัด
+              </button>
+            </div>
+
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-slate-600 w-20 shrink-0">จุดเช็คอิน 2:</span>
+              <input type="text" id="site_${index}_coords2" value="${escapeHtml(site.gpsCoords2 || '')}" onchange="updateEditingSiteField(${index}, 'gpsCoords2', this.value)"
+                placeholder="lat,lng (จุดที่ 2/ลานจอด)" class="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-mono flex-1" />
+              <button type="button" onclick="captureGpsToSiteField(${index}, 'site_${index}_coords2', 'gpsCoords2')" 
+                class="text-[10px] text-sky-600 hover:text-sky-800 font-bold bg-white border border-sky-200 px-2 py-1 rounded-lg shrink-0">
+                📍ดึงพิกัด
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(siteCard);
+      });
+    }
+
+    function updateEditingSiteField(index, field, val) {
+      if (editingSitesList[index]) {
+        editingSitesList[index][field] = val;
+        if (field === 'enableGeofence') {
+          renderDynamicSitesForm();
+        }
+      }
+    }
+
+    function addNewSiteToForm() {
+      const nextNum = editingSitesList.length + 1;
+      editingSitesList.push({
+        name: `ไซต์งาน ${nextNum}`,
+        gpsCoords: "13.756331,100.501849",
+        gpsCoords2: "",
+        enableGeofence: true
+      });
+      renderDynamicSitesForm();
+      showToast(`+ เพิ่มช่องไซต์งาน ${nextNum} เรียบร้อยแล้ว`, "success");
+    }
+
+    function removeSiteFromForm(index) {
+      if (editingSitesList.length <= 1) {
+        showToast("ต้องมีอย่างน้อย 1 ไซต์งานในระบบ", "error");
+        return;
+      }
+      const removedName = editingSitesList[index].name;
+      editingSitesList.splice(index, 1);
+      renderDynamicSitesForm();
+      showToast(`ลบ "${removedName}" ออกแล้ว`, "success");
+    }
+
+    function captureGpsToSiteField(siteIndex, elementId, fieldName) {
       if ("geolocation" in navigator) {
         showLoading("กำลังดึงพิกัด GPS ปัจจุบันของคุณ...");
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             hideLoading();
             const coords = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
-            const targetEl = document.getElementById(inputId);
-            if (targetEl) targetEl.value = coords;
+            const inputEl = document.getElementById(elementId);
+            if (inputEl) inputEl.value = coords;
+            if (editingSitesList[siteIndex]) editingSitesList[siteIndex][fieldName] = coords;
             showToast(`📍 ดึงพิกัด (${coords}) ใส่ช่องสำเร็จ!`, "success");
           },
           (err) => {
@@ -2290,19 +2380,23 @@
 
     function handleSaveGeofence(e) {
       e.preventDefault();
-      const site1 = {
-        name: document.getElementById("site1Name").value.trim() || "สำนักงานใหญ่ (ไซต์ 1)",
-        gpsCoords: document.getElementById("site1Coords").value.trim() || "13.756331,100.501849",
-        gpsCoords2: document.getElementById("site1Coords2").value.trim() || "13.756800,100.502100"
-      };
-      const site2 = {
-        name: document.getElementById("site2Name").value.trim() || "โครงการ 2 (ไซต์ 2)",
-        gpsCoords: document.getElementById("site2Coords").value.trim() || "13.789123,100.523456",
-        gpsCoords2: document.getElementById("site2Coords2").value.trim() || "13.789500,100.524000"
-      };
+      
+      const validSites = editingSitesList.filter(s => s.name && s.name.trim() !== "").map(s => ({
+        name: s.name.trim(),
+        gpsCoords: (s.gpsCoords || "").trim(),
+        gpsCoords2: (s.gpsCoords2 || "").trim(),
+        enableGeofence: s.enableGeofence !== false
+      }));
 
-      const sites = [site1, site2];
-      localStorage.setItem("app_work_sites", JSON.stringify(sites));
+      if (validSites.length === 0) {
+        showToast("กรุณาระบุอย่างน้อย 1 ไซต์งาน", "error");
+        return;
+      }
+
+      saveWorkSites(validSites);
+
+      const isGlobalEnabled = document.getElementById("geofenceGlobalEnabled").checked;
+      localStorage.setItem("geofence_global_enabled", isGlobalEnabled ? "true" : "false");
 
       const radius = document.getElementById("geofenceRadius").value;
       const strict = document.getElementById("geofenceStrict").value;
@@ -2311,8 +2405,8 @@
       localStorage.setItem("geofence_strict_block", strict);
 
       closeModal("sitesModal");
-      renderSiteDropdowns();
-      showToast("💾 บันทึกตั้งค่า 2 จุดเช็คอินประจำแต่ละไซต์งานเรียบร้อยแล้ว!", "success");
+      renderApp();
+      showToast(`💾 บันทึกตั้งค่าการตรวจพิกัด Site งานเรียบร้อยแล้ว!`, "success");
     }
 
     function viewEnlargedPhoto(photoUrl, name) {
@@ -2530,22 +2624,35 @@
     }
 
     function renderApp() {
+      renderSiteDropdowns();
       updateStats();
       const searchQuery = (document.getElementById("searchInput").value || "").toLowerCase().trim();
-      const siteFilter = document.getElementById("siteFilter").value;
+      const siteFilter = document.getElementById("siteFilter") ? document.getElementById("siteFilter").value : "ALL";
 
       const cardsContainer = document.getElementById("cardsList");
       cardsContainer.innerHTML = "";
 
       if (currentTab === "logs") {
         const filtered = logsData.filter(l => {
-          const matchSearch = (
-            (l.employeeName && String(l.employeeName).toLowerCase().includes(searchQuery)) ||
-            (l.date && String(l.date).includes(searchQuery)) ||
-            (l.site && String(l.site).toLowerCase().includes(searchQuery)) ||
-            (l.id && String(l.id).toLowerCase().includes(searchQuery))
+          const empNameStr = l.employeeName ? String(l.employeeName).toLowerCase() : "";
+          const dateStr = l.date ? String(l.date) : "";
+          const siteStr = l.site ? String(l.site).toLowerCase() : "";
+          const idStr = l.id ? String(l.id).toLowerCase() : "";
+
+          const matchSearch = !searchQuery || (
+            empNameStr.includes(searchQuery) ||
+            dateStr.includes(searchQuery) ||
+            siteStr.includes(searchQuery) ||
+            idStr.includes(searchQuery)
           );
-          const matchSite = (siteFilter === "ALL" || l.site === siteFilter);
+
+          const sfClean = siteFilter ? String(siteFilter).trim().toLowerCase() : "all";
+          const matchSite = !siteFilter || sfClean === "all" || !l.site || (
+            siteStr.trim() === sfClean ||
+            siteStr.includes(sfClean) ||
+            sfClean.includes(siteStr.trim())
+          );
+
           return matchSearch && matchSite;
         });
 
@@ -3245,8 +3352,19 @@
       document.getElementById("logSite").value = l.site || "สำนักงานใหญ่";
       document.getElementById("logDate").value = l.date || getTodayString(0);
       
-      const inVal = formatHHMM(l.timeIn) || "08:00";
-      const outVal = formatHHMM(l.timeOut) || "17:00";
+      const rawInFormatted = formatHHMM(l.timeIn);
+      const rawOutFormatted = formatHHMM(l.timeOut);
+
+      // Display original recorded time reference badge for Admin
+      const origText = document.getElementById("originalTimeText");
+      if (origText) {
+        const inDisplay = rawInFormatted ? `${rawInFormatted} น.` : 'ยังไม่ลง';
+        const outDisplay = rawOutFormatted ? `${rawOutFormatted} น.` : 'ยังไม่ลง';
+        origText.innerText = `เข้า: ${inDisplay} | ออก: ${outDisplay}`;
+      }
+
+      const inVal = rawInFormatted || "08:00";
+      const outVal = rawOutFormatted || (l.timeOut ? "17:00" : "");
 
       document.getElementById("logTimeIn").value = inVal;
       document.getElementById("logTimeOut").value = outVal;
