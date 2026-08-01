@@ -2512,6 +2512,32 @@
       return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     }
 
+    function formatHHMM(timeStr) {
+      if (!timeStr || timeStr === "" || timeStr === "-") return "";
+      const str = String(timeStr).trim();
+
+      if (/^\d{1,2}:\d{2}$/.test(str)) {
+        const parts = str.split(":");
+        return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+      }
+
+      try {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          const hours = String(d.getHours()).padStart(2, '0');
+          const mins = String(d.getMinutes()).padStart(2, '0');
+          return `${hours}:${mins}`;
+        }
+      } catch (e) {}
+
+      const match = str.match(/(\d{1,2}):(\d{2})/);
+      if (match) {
+        return `${match[1].padStart(2, '0')}:${match[2]}`;
+      }
+
+      return str;
+    }
+
     function submitAttendance(actionType) {
       const formIndex = document.getElementById("logFormIndex").value;
       const isEditingAsAdmin = (formIndex !== "" && isAdminMode && actionType === "edit_admin");
@@ -2625,8 +2651,11 @@
       if (existingLog && formIndex !== "" && isAdminMode) {
         document.getElementById("logActionType").value = "edit_admin";
         
-        const inVal = document.getElementById("logTimeInInput")?.value || existingLog.timeIn || "08:00";
-        const outVal = document.getElementById("logTimeOutInput")?.value || existingLog.timeOut || "17:00";
+        const rawIn = document.getElementById("logTimeInInput")?.value || existingLog.timeIn || "08:00";
+        const rawOut = document.getElementById("logTimeOutInput")?.value || existingLog.timeOut || "17:00";
+
+        const inVal = formatHHMM(rawIn) || "08:00";
+        const outVal = formatHHMM(rawOut) || "17:00";
         
         document.getElementById("logTimeIn").value = inVal;
         document.getElementById("logTimeOut").value = outVal;
@@ -2835,14 +2864,20 @@
 
       let totalActualHours = 8;
       if (timeIn && timeOut) {
-        const [h1, m1] = timeIn.split(":").map(Number);
-        const [h2, m2] = timeOut.split(":").map(Number);
-        let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diffMinutes < 0) diffMinutes += 24 * 60;
-        
-        let hours = diffMinutes / 60;
-        if (hours >= 5) hours -= 1; // 1-hour lunch break
-        totalActualHours = Math.max(0, Math.round(hours * 10) / 10);
+        const formattedIn = formatHHMM(timeIn);
+        const formattedOut = formatHHMM(timeOut);
+        if (formattedIn && formattedOut && formattedIn.includes(":") && formattedOut.includes(":")) {
+          const [h1, m1] = formattedIn.split(":").map(Number);
+          const [h2, m2] = formattedOut.split(":").map(Number);
+          if (!isNaN(h1) && !isNaN(m1) && !isNaN(h2) && !isNaN(m2)) {
+            let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (diffMinutes < 0) diffMinutes += 24 * 60;
+            
+            let hours = diffMinutes / 60;
+            if (hours >= 5) hours -= 1; // 1-hour lunch break
+            totalActualHours = Math.max(0, Math.round(hours * 10) / 10);
+          }
+        }
       }
 
       // Standard normal working hours = 8 hours (1 full day)
@@ -2904,8 +2939,8 @@
       document.getElementById("logSite").value = l.site || "สำนักงานใหญ่";
       document.getElementById("logDate").value = l.date || getTodayString(0);
       
-      const inVal = l.timeIn || "08:00";
-      const outVal = l.timeOut || "17:00";
+      const inVal = formatHHMM(l.timeIn) || "08:00";
+      const outVal = formatHHMM(l.timeOut) || "17:00";
 
       document.getElementById("logTimeIn").value = inVal;
       document.getElementById("logTimeOut").value = outVal;
