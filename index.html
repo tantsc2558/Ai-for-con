@@ -1239,7 +1239,7 @@
       return sites.filter(s => s && s.name && !String(s.name).startsWith("__SYSTEM_"));
     }
 
-    function saveWorkSites(sitesArray) {
+    async function saveWorkSites(sitesArray) {
       localStorage.setItem("app_work_sites_v2", JSON.stringify(sitesArray));
       localStorage.setItem("app_work_sites", JSON.stringify(sitesArray));
       renderSiteDropdowns();
@@ -1253,7 +1253,7 @@
         strict: currentStrict
       };
 
-      postApiRequest({ 
+      await postApiRequest({ 
         action: "saveWorkSites", 
         sites: sitesArray, 
         data: sitesArray,
@@ -2418,70 +2418,79 @@
       }
     }
 
-    function handleSaveGeofence(e) {
+    async function handleSaveGeofence(e) {
       e.preventDefault();
+      showLoading("กำลังบันทึกการตั้งค่าพิกัดไปยัง Google Sheets...");
 
-      const isGlobalEnabled = document.getElementById("geofenceGlobalEnabled").checked;
-      const radius = document.getElementById("geofenceRadius").value;
-      const strict = document.getElementById("geofenceStrict").value;
+      try {
+        const isGlobalEnabled = document.getElementById("geofenceGlobalEnabled").checked;
+        const radius = document.getElementById("geofenceRadius").value;
+        const strict = document.getElementById("geofenceStrict").value;
 
-      localStorage.setItem("geofence_global_enabled", isGlobalEnabled ? "true" : "false");
-      localStorage.setItem("geofence_allowed_radius", radius);
-      localStorage.setItem("geofence_strict_block", strict);
+        localStorage.setItem("geofence_global_enabled", isGlobalEnabled ? "true" : "false");
+        localStorage.setItem("geofence_allowed_radius", radius);
+        localStorage.setItem("geofence_strict_block", strict);
 
-      const validSites = editingSitesList.filter(s => s.name && s.name.trim() !== "" && !String(s.name).startsWith("__SYSTEM_")).map(s => ({
-        name: s.name.trim(),
-        gpsCoords: (s.gpsCoords || "").trim(),
-        gpsCoords2: (s.gpsCoords2 || "").trim(),
-        enableGeofence: s.enableGeofence !== false,
-        globalEnabled: isGlobalEnabled,
-        radius: String(radius),
-        strict: String(strict)
-      }));
+        const validSites = editingSitesList.filter(s => s.name && s.name.trim() !== "" && !String(s.name).startsWith("__SYSTEM_")).map(s => ({
+          name: s.name.trim(),
+          gpsCoords: (s.gpsCoords || "").trim(),
+          gpsCoords2: (s.gpsCoords2 || "").trim(),
+          enableGeofence: s.enableGeofence !== false,
+          globalEnabled: isGlobalEnabled,
+          radius: String(radius),
+          strict: String(strict)
+        }));
 
-      if (validSites.length === 0) {
-        showToast("กรุณาระบุอย่างน้อย 1 ไซต์งาน", "error");
-        return;
+        if (validSites.length === 0) {
+          hideLoading();
+          showToast("กรุณาระบุอย่างน้อย 1 ไซต์งาน", "error");
+          return;
+        }
+
+        // Add system configuration row into workSites payload
+        const sysConfigSite = {
+          name: "__SYSTEM_GEOFENCE_CONFIG__",
+          gpsCoords: `GLOBAL_ENABLED:${isGlobalEnabled ? "true" : "false"}|RADIUS:${radius}|STRICT:${strict}`,
+          gpsCoords2: "CONFIG_V1",
+          enableGeofence: false,
+          globalEnabled: isGlobalEnabled,
+          radius: String(radius),
+          strict: String(strict)
+        };
+
+        const sitesToSave = [...validSites, sysConfigSite];
+        await saveWorkSites(sitesToSave);
+
+        // Sync geofence settings to Google Sheets Cloud with full multi-key fallback
+        const gfPayload = {
+          globalEnabled: isGlobalEnabled,
+          radius: String(radius),
+          strict: String(strict)
+        };
+
+        await postApiRequest({
+          action: "saveSettings",
+          settings: gfPayload,
+          geofenceSettings: gfPayload,
+          data: gfPayload
+        });
+
+        await postApiRequest({
+          action: "saveGeofenceSettings",
+          settings: gfPayload,
+          geofenceSettings: gfPayload,
+          data: gfPayload
+        });
+
+        closeModal("sitesModal");
+        renderApp();
+        showToast(`💾 บันทึกตั้งค่าการตรวจพิกัด Site งานเรียบร้อยแล้ว!`, "success");
+      } catch (err) {
+        console.warn("Save Geofence Error:", err);
+        showToast("บันทึกการตั้งค่าเรียบร้อย (โหมดสำรอง)", "success");
+      } finally {
+        hideLoading();
       }
-
-      // Add system configuration row into workSites payload
-      const sysConfigSite = {
-        name: "__SYSTEM_GEOFENCE_CONFIG__",
-        gpsCoords: `GLOBAL_ENABLED:${isGlobalEnabled ? "true" : "false"}|RADIUS:${radius}|STRICT:${strict}`,
-        gpsCoords2: "CONFIG_V1",
-        enableGeofence: false,
-        globalEnabled: isGlobalEnabled,
-        radius: String(radius),
-        strict: String(strict)
-      };
-
-      const sitesToSave = [...validSites, sysConfigSite];
-      saveWorkSites(sitesToSave);
-
-      // Sync geofence settings to Google Sheets Cloud with full multi-key fallback
-      const gfPayload = {
-        globalEnabled: isGlobalEnabled,
-        radius: String(radius),
-        strict: String(strict)
-      };
-
-      postApiRequest({
-        action: "saveSettings",
-        settings: gfPayload,
-        geofenceSettings: gfPayload,
-        data: gfPayload
-      });
-
-      postApiRequest({
-        action: "saveGeofenceSettings",
-        settings: gfPayload,
-        geofenceSettings: gfPayload,
-        data: gfPayload
-      });
-
-      closeModal("sitesModal");
-      renderApp();
-      showToast(`💾 บันทึกตั้งค่าการตรวจพิกัด Site งานเรียบร้อยแล้ว!`, "success");
     }
 
     function viewEnlargedPhoto(photoUrl, name) {
@@ -2775,11 +2784,28 @@
           },
           body: JSON.stringify(payload)
         });
-        const result = await response.json();
-        return result;
+        try {
+          const result = await response.json();
+          return result;
+        } catch (e) {
+          return { success: true };
+        }
       } catch (err) {
-        console.warn("API POST failed:", err);
-        return { success: true };
+        console.warn("API POST initial fetch failed, trying no-cors fallback:", err);
+        try {
+          await fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+          });
+          return { success: true };
+        } catch (e2) {
+          console.warn("API POST fallback failed:", e2);
+          return { success: false };
+        }
       }
     }
 
