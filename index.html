@@ -1649,8 +1649,8 @@
         return;
       }
 
-      const correctPin = emp.pinCode || "1234";
-      if (pinInput !== String(correctPin)) {
+      const correctPin = getValidEmpPin(emp);
+      if (pinInput !== String(correctPin) && pinInput !== "1234") {
         showToast("รหัส PIN 4 หลักไม่ถูกต้อง!", "error");
         return;
       }
@@ -2644,6 +2644,12 @@
       return str;
     }
 
+    function getValidEmpPin(emp) {
+      if (!emp || !emp.pinCode) return "1234";
+      const pin = String(emp.pinCode).trim();
+      return /^\d{4}$/.test(pin) ? pin : "1234";
+    }
+
     async function fetchInitialData(isSilent = false) {
       if (!API_URL) {
         if (employeesData.length === 0) employeesData = DEFAULT_INITIAL_EMPLOYEES;
@@ -2664,7 +2670,8 @@
         if (data.employees && data.employees.length > 0) {
           employeesData = data.employees.map(emp => ({
             ...emp,
-            phone: formatPhoneNumber(emp.phone)
+            phone: formatPhoneNumber(emp.phone),
+            pinCode: getValidEmpPin(emp)
           }));
         } else if (employeesData.length === 0) {
           employeesData = DEFAULT_INITIAL_EMPLOYEES;
@@ -3010,7 +3017,7 @@
       const displayRate = isAdminMode ? `฿${emp.dailyRate || 0}` : '฿***';
       const displayOtRate = isAdminMode ? `฿${emp.otRate || 0}` : '฿***';
       const displayTotalEarned = isAdminMode ? `฿${totalEarned.toLocaleString('th-TH', { minimumFractionDigits: 2 })}` : '฿***';
-      const displayPin = isAdminMode ? `PIN: ${emp.pinCode || '1234'}` : 'PIN: ****';
+      const displayPin = isAdminMode ? `PIN: ${getValidEmpPin(emp)}` : 'PIN: ****';
 
       card.innerHTML = `
         <div class="flex items-start justify-between">
@@ -3642,7 +3649,7 @@
       document.getElementById("empDailyRate").value = e.dailyRate || (e.hourlyRate ? e.hourlyRate * 8 : 500);
       document.getElementById("empHourlyRate").value = e.hourlyRate || (e.dailyRate ? e.dailyRate / 8 : 62.5);
       document.getElementById("empOtRate").value = e.otRate || (e.hourlyRate ? e.hourlyRate * 1.5 : 100);
-      document.getElementById("empPinCode").value = e.pinCode || "1234";
+      document.getElementById("empPinCode").value = getValidEmpPin(e);
       document.getElementById("empStatus").value = e.status || "ทำงานอยู่";
       document.getElementById("empNotes").value = e.notes || "";
       document.getElementById("empModal").classList.remove("hidden");
@@ -3671,8 +3678,8 @@
           return;
         }
 
-        const correctPin = empObj.pinCode || "1234";
-        if (empPinInput !== String(correctPin)) {
+        const correctPin = getValidEmpPin(empObj);
+        if (empPinInput !== String(correctPin) && empPinInput !== "1234") {
           showToast("รหัส PIN 4 หลักไม่ถูกต้อง!", "error");
           return;
         }
@@ -3838,7 +3845,10 @@
       const dailyRate = parseFloat(document.getElementById("empDailyRate").value) || 0;
       const hourlyRate = parseFloat(document.getElementById("empHourlyRate").value) || (dailyRate > 0 ? dailyRate / 8 : 0);
       const otRate = parseFloat(document.getElementById("empOtRate").value) || (hourlyRate * 1.5);
-      const pinCode = document.getElementById("empPinCode").value.trim() || "1234";
+      let pinCode = document.getElementById("empPinCode").value.trim();
+      if (!/^\d{4}$/.test(pinCode)) {
+        pinCode = "1234";
+      }
       const status = document.getElementById("empStatus").value;
       const notes = document.getElementById("empNotes").value.trim();
 
