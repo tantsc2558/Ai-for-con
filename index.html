@@ -1235,8 +1235,9 @@
 
     function saveWorkSites(sitesArray) {
       localStorage.setItem("app_work_sites_v2", JSON.stringify(sitesArray));
+      localStorage.setItem("app_work_sites", JSON.stringify(sitesArray));
       renderSiteDropdowns();
-      postApiRequest({ action: "saveWorkSites", sites: sitesArray });
+      postApiRequest({ action: "saveWorkSites", sites: sitesArray, data: sitesArray });
     }
 
     function renderSiteDropdowns() {
@@ -2617,9 +2618,11 @@
 
         if (data.logs) logsData = data.logs;
 
-        const remoteSites = data.workSites || data.sites;
-        if (remoteSites && remoteSites.length > 0) {
+        const remoteSites = data.workSites || data.sites || (data.result ? (data.result.workSites || data.result.sites) : null);
+        if (remoteSites && Array.isArray(remoteSites) && remoteSites.length > 0) {
           localStorage.setItem("app_work_sites_v2", JSON.stringify(remoteSites));
+          localStorage.setItem("app_work_sites", JSON.stringify(remoteSites));
+          renderSiteDropdowns();
         }
 
         const remoteSettings = data.settings || data.geofenceSettings;
