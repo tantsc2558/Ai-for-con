@@ -2716,11 +2716,35 @@
             const cleanPos = (isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim());
             const cleanStatus = (isStatusCorrupted && defaultMatch) ? defaultMatch.status : (isStatusCorrupted ? "ทำงานอยู่" : String(emp.status).trim());
 
+            let rawDaily = parseFloat(emp.dailyRate) || 0;
+            let rawHourly = parseFloat(emp.hourlyRate) || 0;
+            let rawOt = parseFloat(emp.otRate) || 0;
+
+            // Auto-correct shifted or invalid wage rates from Google Sheets
+            if (rawDaily > 0 && rawDaily < 150 && (rawHourly === 0 || Math.abs(rawDaily - rawHourly) < 0.1)) {
+              rawHourly = rawDaily;
+              rawDaily = rawHourly * 8;
+            }
+
+            if (rawDaily === 0) {
+              rawDaily = defaultMatch ? defaultMatch.dailyRate : 500;
+              rawHourly = rawDaily / 8;
+            }
+            if (rawHourly === 0) {
+              rawHourly = rawDaily / 8;
+            }
+            if (rawOt > 500 || rawOt === 0) {
+              rawOt = rawHourly * 1.5;
+            }
+
             return {
               ...emp,
               name: cleanName,
               position: cleanPos,
               status: cleanStatus,
+              dailyRate: Math.round(rawDaily * 100) / 100,
+              hourlyRate: Math.round(rawHourly * 100) / 100,
+              otRate: Math.round(rawOt * 100) / 100,
               phone: formatPhoneNumber(emp.phone),
               pinCode: getValidEmpPin(emp)
             };
