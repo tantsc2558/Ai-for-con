@@ -763,10 +763,11 @@
           </div>
 
           <div class="flex items-center gap-3">
-            <div id="photoPreviewBox" onclick="openDirectCamera()" title="กดที่นี่เพื่อถ่ายรูปเช็คอิน" 
+            <div id="photoPreviewBox" onclick="openDirectCamera()" title="กดที่นี่เพื่อถ่ายรูป/แนบไฟล์วิดีโอ" 
               class="w-16 h-16 rounded-xl bg-slate-200 border-2 border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50 flex items-center justify-center text-slate-400 cursor-pointer overflow-hidden relative group transition-all shrink-0">
               <i id="photoIcon" class="fa-solid fa-camera text-xl text-sky-600"></i>
               <img id="photoImg" class="w-full h-full object-cover hidden" src="" />
+              <video id="photoVideo" class="w-full h-full object-cover hidden" autoplay loop muted playsinline src=""></video>
             </div>
 
             <div class="flex-1 space-y-1.5">
@@ -780,7 +781,7 @@
                 </button>
               </div>
 
-              <input type="file" id="cameraInput" accept="image/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
+              <input type="file" id="cameraInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
 
               <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                 <i class="fa-solid fa-location-dot text-slate-400"></i> <span id="gpsText">ยังไม่ได้ดึงพิกัด</span>
@@ -946,7 +947,8 @@
       <button onclick="closeModal('photoViewerModal')" class="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white text-slate-800 shadow-lg flex items-center justify-center font-bold">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <img id="enlargedPhotoImg" class="w-full h-80 object-cover rounded-2xl border border-slate-800" src="" />
+      <img id="enlargedPhotoImg" class="w-full h-80 object-cover rounded-2xl border border-slate-800 hidden" src="" />
+      <video id="enlargedPhotoVideo" class="w-full h-80 object-cover rounded-2xl border border-slate-800 hidden" controls autoplay loop muted playsinline src=""></video>
       <p id="enlargedPhotoCaption" class="text-xs text-slate-300 font-medium"></p>
     </div>
   </div>
@@ -1997,6 +1999,16 @@
       if (!input) return;
       input.value = "";
       input.removeAttribute("capture");
+      input.accept = "image/*,video/*";
+      input.click();
+    }
+
+    function openDirectCamera() {
+      const input = document.getElementById("cameraInput");
+      if (!input) return;
+      input.value = "";
+      input.setAttribute("capture", "environment");
+      input.accept = "image/*,video/*";
       input.click();
     }
 
@@ -2491,10 +2503,33 @@
       }
     }
 
-    function viewEnlargedPhoto(photoUrl, name) {
-      if (!photoUrl) return;
-      document.getElementById("enlargedPhotoImg").src = photoUrl;
-      document.getElementById("enlargedPhotoCaption").innerText = `ภาพถ่ายเช็คอิน: ${name}`;
+    function viewEnlargedPhoto(mediaUrl, name) {
+      if (!mediaUrl) return;
+      const imgEl = document.getElementById("enlargedPhotoImg");
+      const videoEl = document.getElementById("enlargedPhotoVideo");
+      const captionEl = document.getElementById("enlargedPhotoCaption");
+
+      const isVideo = mediaUrl.startsWith("data:video/") || /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(mediaUrl);
+
+      if (isVideo) {
+        if (imgEl) imgEl.classList.add("hidden");
+        if (videoEl) {
+          videoEl.src = mediaUrl;
+          videoEl.classList.remove("hidden");
+        }
+        if (captionEl) captionEl.innerText = `วิดีโอเช็คอิน: ${name}`;
+      } else {
+        if (videoEl) {
+          videoEl.pause();
+          videoEl.classList.add("hidden");
+        }
+        if (imgEl) {
+          imgEl.src = mediaUrl;
+          imgEl.classList.remove("hidden");
+        }
+        if (captionEl) captionEl.innerText = `ภาพถ่ายเช็คอิน: ${name}`;
+      }
+
       document.getElementById("photoViewerModal").classList.remove("hidden");
     }
 
@@ -2984,11 +3019,20 @@
       card.innerHTML = `
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3">
-            ${l.photoData ? `
-              <img src="${l.photoData}" onclick="viewEnlargedPhoto('${l.photoData}', '${escapeHtml(l.employeeName)}')" 
-                class="w-11 h-11 rounded-xl object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-105 transition-transform" />
-            ` : `
-              <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center text-lg border border-slate-200">
+            ${l.photoData ? (
+              (String(l.photoData).startsWith("data:video/") || /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(l.photoData)) ? `
+                <div class="relative w-11 h-11 rounded-xl overflow-hidden border border-slate-200 cursor-pointer shadow-sm group shrink-0" onclick="viewEnlargedPhoto('${l.photoData}', '${escapeHtml(l.employeeName)}')">
+                  <video src="${l.photoData}" class="w-full h-full object-cover" muted loop playsinline autoplay></video>
+                  <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <i class="fa-solid fa-play text-white text-xs drop-shadow-md"></i>
+                  </div>
+                </div>
+              ` : `
+                <img src="${l.photoData}" onclick="viewEnlargedPhoto('${l.photoData}', '${escapeHtml(l.employeeName)}')" 
+                  class="w-11 h-11 rounded-xl object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-105 transition-transform shrink-0" />
+              `
+            ) : `
+              <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center text-lg border border-slate-200 shrink-0">
                 <i class="fa-solid fa-user-astronaut"></i>
               </div>
             `}
@@ -3107,7 +3151,7 @@
           </div>
         </div>
 
-        ${emp.notes ? `<p class="text-xs text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-100"><i class="fa-solid fa-building-columns text-slate-400 mr-1"></i>${escapeHtml(emp.notes)}</p>` : ''}
+        ${(emp.notes && !emp.notes.includes("GMT+") && !emp.notes.includes("Indochina Time") && !/^[A-Z][a-z]{2}\s[A-Z][a-z]{2}/.test(emp.notes.trim())) ? `<p class="text-xs text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-100"><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i>${escapeHtml(emp.notes)}</p>` : ''}
 
         ${isAdminMode ? `
         <div class="flex justify-end gap-2 pt-1 border-t border-slate-50">
@@ -3510,6 +3554,10 @@
           document.getElementById("photoImg").src = "";
           document.getElementById("photoImg").classList.add("hidden");
         }
+        if (document.getElementById("photoVideo")) {
+          document.getElementById("photoVideo").src = "";
+          document.getElementById("photoVideo").classList.add("hidden");
+        }
         if (document.getElementById("photoIcon")) document.getElementById("photoIcon").classList.remove("hidden");
 
         const pinContainer = document.getElementById("pinVerificationContainer");
@@ -3678,8 +3726,23 @@
       document.getElementById("logPhotoData").value = l.photoData || "";
 
       if (l.photoData) {
-        document.getElementById("photoImg").src = l.photoData;
-        document.getElementById("photoImg").classList.remove("hidden");
+        const isVideo = String(l.photoData).startsWith("data:video/") || /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(l.photoData);
+        const photoImg = document.getElementById("photoImg");
+        const photoVideo = document.getElementById("photoVideo");
+
+        if (isVideo) {
+          if (photoImg) photoImg.classList.add("hidden");
+          if (photoVideo) {
+            photoVideo.src = l.photoData;
+            photoVideo.classList.remove("hidden");
+          }
+        } else {
+          if (photoVideo) photoVideo.classList.add("hidden");
+          if (photoImg) {
+            photoImg.src = l.photoData;
+            photoImg.classList.remove("hidden");
+          }
+        }
         document.getElementById("photoIcon").classList.add("hidden");
       }
 
