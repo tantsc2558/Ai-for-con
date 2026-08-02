@@ -328,7 +328,7 @@
     </div>
 
     <!-- CARDS CONTAINER -->
-    <div id="cardsList" class="space-y-3">
+    <div id="cardsList" class="space-y-3 min-h-[250px]">
     </div>
 
   </main>
@@ -2850,13 +2850,37 @@
       }
     }
 
-    function renderApp() {
-      renderSiteDropdowns();
-      updateStats();
-      const searchQuery = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+    let lastRenderedState = "";
+
+    function renderApp(force = false) {
+      const searchQuery = (document.getElementById("searchInput") ? document.getElementById("searchInput").value : "").toLowerCase().trim();
       const siteFilter = document.getElementById("siteFilter") ? document.getElementById("siteFilter").value : "ALL";
 
+      const currentState = JSON.stringify({
+        tab: currentTab,
+        admin: isAdminMode,
+        search: searchQuery,
+        filter: siteFilter,
+        empCount: employeesData.length,
+        logCount: logsData.length,
+        emps: employeesData,
+        logs: logsData
+      });
+
+      // Skip DOM re-creation if data hasn't changed to eliminate screen jerking/flickering!
+      if (!force && currentState === lastRenderedState) {
+        renderSiteDropdowns();
+        updateStats();
+        return;
+      }
+
+      lastRenderedState = currentState;
+
+      renderSiteDropdowns();
+      updateStats();
+
       const cardsContainer = document.getElementById("cardsList");
+      if (!cardsContainer) return;
       cardsContainer.innerHTML = "";
 
       if (currentTab === "logs") {
@@ -4001,12 +4025,12 @@
       return dateStr;
     }
 
-    // Fast Real-time Background Auto-Sync (Silent refresh every 3 seconds)
+    // Real-time Background Auto-Sync (Silent refresh every 5 seconds without screen jerking)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         fetchInitialData(true);
       }
-    }, 3000);
+    }, 5000);
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
