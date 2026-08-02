@@ -1191,11 +1191,7 @@
       setInterval(updateClock, 1000);
     }
 
-    const DEFAULT_INITIAL_EMPLOYEES = [
-      { id: "EMP-001", name: "นายสมชาย ใจดี", phone: "081-234-5678", position: "ช่างเทคนิค", dailyRate: 500, hourlyRate: 62.5, otRate: 93.75, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
-      { id: "EMP-002", name: "นายวิชัย สมบูรณ์", phone: "089-876-5432", position: "วิศวกรคุมไซต์", dailyRate: 800, hourlyRate: 100, otRate: 150, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
-      { id: "EMP-003", name: "นางสาวอนงค์ มีสุข", phone: "086-555-4321", position: "พนักงานบัญชี", dailyRate: 600, hourlyRate: 75, otRate: 112.5, pinCode: "1234", status: "ทำงานอยู่", notes: "" }
-    ];
+    const DEFAULT_INITIAL_EMPLOYEES = [];
 
     function handleDailyRateInput() {
       const dailyInput = document.getElementById("empDailyRate");
