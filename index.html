@@ -1865,7 +1865,7 @@
           <div class="flex justify-between items-center bg-sky-50 p-2.5 rounded-xl border border-sky-100">
             <div>
               <h4 class="font-bold text-slate-800 text-xs">👤 ${escapeHtml(emp.name)} <span class="font-normal text-slate-500">(${escapeHtml(emp.position)})</span></h4>
-              <p class="text-[10px] text-slate-500">อัตราค่าแรง: ฿${dailyRateVal}/วัน | OT: ฿${otRateVal}/ชม. ${isAdminMode ? `| PIN: ${emp.pinCode || '1234'}` : ''}</p>
+              <p class="text-[10px] text-slate-500">อัตราค่าแรง: ฿${dailyRateVal}/วัน | OT: ฿${otRateVal}/ชม. ${isAdminMode ? `| PIN: ${getValidEmpPin(emp)}` : ''}</p>
             </div>
             <div class="text-right">
               <span class="text-[10px] text-slate-400 block">รวมค่าแรงประจำงวดนี้</span>
@@ -2645,9 +2645,12 @@
     }
 
     function getValidEmpPin(emp) {
-      if (!emp || !emp.pinCode) return "1234";
-      const pin = String(emp.pinCode).trim();
-      return /^\d{4}$/.test(pin) ? pin : "1234";
+      if (!emp) return "1234";
+      const pin = String(emp.pinCode || "").trim();
+      if (/^\d{4}$/.test(pin)) return pin;
+      const defaultMatch = DEFAULT_INITIAL_EMPLOYEES.find(d => d && d.id === emp.id);
+      if (defaultMatch && /^\d{4}$/.test(defaultMatch.pinCode)) return defaultMatch.pinCode;
+      return "1234";
     }
 
     async function fetchInitialData(isSilent = false) {
@@ -2672,7 +2675,7 @@
             const defaultMatch = DEFAULT_INITIAL_EMPLOYEES.find(d => d.id === emp.id);
             const isNameCorrupted = !emp.name || String(emp.name).includes("?") || String(emp.name).trim() === "";
             const isPosCorrupted = !emp.position || String(emp.position).includes("?");
-            const isStatusCorrupted = !emp.status || String(emp.status).includes("?");
+            const isStatusCorrupted = !emp.status || String(emp.status).includes("?") || /^\d{4}$/.test(String(emp.status).trim());
 
             const cleanName = (isNameCorrupted && defaultMatch) ? defaultMatch.name : (isNameCorrupted ? `พนักงาน (${emp.id})` : String(emp.name).trim());
             const cleanPos = (isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim());
