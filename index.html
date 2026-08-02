@@ -1193,8 +1193,8 @@
 
     const DEFAULT_INITIAL_EMPLOYEES = [
       { id: "EMP-001", name: "นายสมชาย ใจดี", phone: "081-234-5678", position: "ช่างเทคนิค", dailyRate: 500, hourlyRate: 62.5, otRate: 93.75, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
-      { id: "EMP-002", name: "นายวิชัย สมบูรณ์", phone: "089-876-5432", position: "วิศวกรคุมไซต์", dailyRate: 800, hourlyRate: 100, otRate: 150, pinCode: "5678", status: "ทำงานอยู่", notes: "" },
-      { id: "EMP-003", name: "นางสาวอนงค์ มีสุข", phone: "086-555-4321", position: "พนักงานบัญชี", dailyRate: 600, hourlyRate: 75, otRate: 112.5, pinCode: "9999", status: "ทำงานอยู่", notes: "" }
+      { id: "EMP-002", name: "นายวิชัย สมบูรณ์", phone: "089-876-5432", position: "วิศวกรคุมไซต์", dailyRate: 800, hourlyRate: 100, otRate: 150, pinCode: "1234", status: "ทำงานอยู่", notes: "" },
+      { id: "EMP-003", name: "นางสาวอนงค์ มีสุข", phone: "086-555-4321", position: "พนักงานบัญชี", dailyRate: 600, hourlyRate: 75, otRate: 112.5, pinCode: "1234", status: "ทำงานอยู่", notes: "" }
     ];
 
     function handleDailyRateInput() {
@@ -2681,10 +2681,15 @@
 
     function getValidEmpPin(emp) {
       if (!emp) return "1234";
+      try {
+        const empOverrides = JSON.parse(localStorage.getItem("app_emp_overrides") || "{}");
+        if (emp.id && empOverrides[emp.id] && empOverrides[emp.id].pinCode && /^\d{4}$/.test(empOverrides[emp.id].pinCode)) {
+          return String(empOverrides[emp.id].pinCode).trim();
+        }
+      } catch (e) {}
+
       const pin = String(emp.pinCode || "").trim();
-      if (/^\d{4}$/.test(pin)) return pin;
-      const defaultMatch = DEFAULT_INITIAL_EMPLOYEES.find(d => d && d.id === emp.id);
-      if (defaultMatch && /^\d{4}$/.test(defaultMatch.pinCode)) return defaultMatch.pinCode;
+      if (/^\d{4}$/.test(pin) && pin !== "5678" && pin !== "9999") return pin;
       return "1234";
     }
 
@@ -2721,7 +2726,7 @@
             const cleanName = override ? override.name : ((isNameCorrupted && defaultMatch) ? defaultMatch.name : (isNameCorrupted ? `พนักงาน (${emp.id})` : String(emp.name).trim()));
             const cleanPos = override ? override.position : ((isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim()));
             const cleanStatus = override ? override.status : ((isStatusCorrupted && defaultMatch) ? defaultMatch.status : (isStatusCorrupted ? "ทำงานอยู่" : String(emp.status).trim()));
-            const cleanPin = override ? override.pinCode : getValidEmpPin(emp);
+            const cleanPin = (override && override.pinCode && /^\d{4}$/.test(override.pinCode)) ? String(override.pinCode).trim() : getValidEmpPin(emp);
 
             let rawDaily = override ? override.dailyRate : (parseFloat(emp.dailyRate) || 0);
             let rawHourly = override ? override.hourlyRate : (parseFloat(emp.hourlyRate) || 0);
