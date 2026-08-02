@@ -2668,16 +2668,42 @@
         const data = await response.json();
 
         if (data.employees && data.employees.length > 0) {
-          employeesData = data.employees.map(emp => ({
-            ...emp,
-            phone: formatPhoneNumber(emp.phone),
-            pinCode: getValidEmpPin(emp)
-          }));
+          employeesData = data.employees.map(emp => {
+            const defaultMatch = DEFAULT_INITIAL_EMPLOYEES.find(d => d.id === emp.id);
+            const isNameCorrupted = !emp.name || String(emp.name).includes("?") || String(emp.name).trim() === "";
+            const isPosCorrupted = !emp.position || String(emp.position).includes("?");
+            const isStatusCorrupted = !emp.status || String(emp.status).includes("?");
+
+            const cleanName = (isNameCorrupted && defaultMatch) ? defaultMatch.name : (isNameCorrupted ? `พนักงาน (${emp.id})` : String(emp.name).trim());
+            const cleanPos = (isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim());
+            const cleanStatus = (isStatusCorrupted && defaultMatch) ? defaultMatch.status : (isStatusCorrupted ? "ทำงานอยู่" : String(emp.status).trim());
+
+            return {
+              ...emp,
+              name: cleanName,
+              position: cleanPos,
+              status: cleanStatus,
+              phone: formatPhoneNumber(emp.phone),
+              pinCode: getValidEmpPin(emp)
+            };
+          });
         } else if (employeesData.length === 0) {
           employeesData = DEFAULT_INITIAL_EMPLOYEES;
         }
 
-        if (data.logs) logsData = data.logs;
+        if (data.logs && Array.isArray(data.logs)) {
+          logsData = data.logs.map(log => {
+            let name = log.employeeName;
+            if (!name || String(name).includes("?")) {
+              const empMatch = employeesData.find(e => e.id === log.employeeId || e.name === log.employeeName);
+              if (empMatch) name = empMatch.name;
+            }
+            return {
+              ...log,
+              employeeName: name || "พนักงาน"
+            };
+          });
+        }
 
         const isTrueVal = (val) => {
           if (val === true || val === 1) return true;
