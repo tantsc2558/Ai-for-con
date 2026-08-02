@@ -2705,23 +2705,30 @@
         const response = await fetch(fetchUrl, { cache: "no-store" });
         const data = await response.json();
 
+        let empOverrides = {};
+        try {
+          empOverrides = JSON.parse(localStorage.getItem("app_emp_overrides") || "{}");
+        } catch(e) {}
+
         if (data.employees && data.employees.length > 0) {
           employeesData = data.employees.map(emp => {
+            const override = empOverrides[emp.id];
             const defaultMatch = DEFAULT_INITIAL_EMPLOYEES.find(d => d.id === emp.id);
             const isNameCorrupted = !emp.name || String(emp.name).includes("?") || String(emp.name).trim() === "";
             const isPosCorrupted = !emp.position || String(emp.position).includes("?");
             const isStatusCorrupted = !emp.status || String(emp.status).includes("?") || /^\d{4}$/.test(String(emp.status).trim());
 
-            const cleanName = (isNameCorrupted && defaultMatch) ? defaultMatch.name : (isNameCorrupted ? `พนักงาน (${emp.id})` : String(emp.name).trim());
-            const cleanPos = (isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim());
-            const cleanStatus = (isStatusCorrupted && defaultMatch) ? defaultMatch.status : (isStatusCorrupted ? "ทำงานอยู่" : String(emp.status).trim());
+            const cleanName = override ? override.name : ((isNameCorrupted && defaultMatch) ? defaultMatch.name : (isNameCorrupted ? `พนักงาน (${emp.id})` : String(emp.name).trim()));
+            const cleanPos = override ? override.position : ((isPosCorrupted && defaultMatch) ? defaultMatch.position : (isPosCorrupted ? "พนักงาน" : String(emp.position).trim()));
+            const cleanStatus = override ? override.status : ((isStatusCorrupted && defaultMatch) ? defaultMatch.status : (isStatusCorrupted ? "ทำงานอยู่" : String(emp.status).trim()));
+            const cleanPin = override ? override.pinCode : getValidEmpPin(emp);
 
-            let rawDaily = parseFloat(emp.dailyRate) || 0;
-            let rawHourly = parseFloat(emp.hourlyRate) || 0;
-            let rawOt = parseFloat(emp.otRate) || 0;
+            let rawDaily = override ? override.dailyRate : (parseFloat(emp.dailyRate) || 0);
+            let rawHourly = override ? override.hourlyRate : (parseFloat(emp.hourlyRate) || 0);
+            let rawOt = override ? override.otRate : (parseFloat(emp.otRate) || 0);
 
             // Auto-correct shifted or invalid wage rates from Google Sheets
-            if (rawDaily > 0 && rawDaily < 150) {
+            if (!override && rawDaily > 0 && rawDaily < 150) {
               rawHourly = rawDaily;
               rawDaily = rawHourly * 8;
             }
@@ -2745,8 +2752,8 @@
               dailyRate: Math.round(rawDaily * 100) / 100,
               hourlyRate: Math.round(rawHourly * 100) / 100,
               otRate: Math.round(rawOt * 100) / 100,
-              phone: formatPhoneNumber(emp.phone),
-              pinCode: getValidEmpPin(emp)
+              phone: override ? override.phone : formatPhoneNumber(emp.phone),
+              pinCode: cleanPin
             };
           });
         } else if (employeesData.length === 0) {
@@ -4005,6 +4012,11 @@
         const updatedEmp = { id: targetId, name, phone, position, dailyRate, hourlyRate, otRate, pinCode, status, notes };
         employeesData[index] = updatedEmp;
 
+        let empOverrides = {};
+        try { empOverrides = JSON.parse(localStorage.getItem("app_emp_overrides") || "{}"); } catch(e) {}
+        empOverrides[targetId] = updatedEmp;
+        localStorage.setItem("app_emp_overrides", JSON.stringify(empOverrides));
+
         await postApiRequest({ action: "editEmployee", data: updatedEmp });
       }
 
@@ -4053,6 +4065,13 @@
         } else if (typeof deleteTarget.index === 'number' && deleteTarget.index >= 0) {
           employeesData.splice(deleteTarget.index, 1);
         }
+
+        try {
+          let empOverrides = JSON.parse(localStorage.getItem("app_emp_overrides") || "{}");
+          delete empOverrides[deleteTarget.id];
+          localStorage.setItem("app_emp_overrides", JSON.stringify(empOverrides));
+        } catch(e) {}
+
         await postApiRequest({ action: "deleteEmployee", id: deleteTarget.id });
         showToast("ลบรายชื่อพนักงานเรียบร้อยแล้ว", "success");
       }
