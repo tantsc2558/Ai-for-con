@@ -1237,7 +1237,23 @@
       localStorage.setItem("app_work_sites_v2", JSON.stringify(sitesArray));
       localStorage.setItem("app_work_sites", JSON.stringify(sitesArray));
       renderSiteDropdowns();
-      postApiRequest({ action: "saveWorkSites", sites: sitesArray, data: sitesArray });
+
+      const currentGlobalEnabled = localStorage.getItem("geofence_global_enabled") !== "false";
+      const currentRadius = localStorage.getItem("geofence_allowed_radius") || "500";
+      const currentStrict = localStorage.getItem("geofence_strict_block") || "true";
+      const gfSettings = {
+        globalEnabled: currentGlobalEnabled,
+        radius: currentRadius,
+        strict: currentStrict
+      };
+
+      postApiRequest({ 
+        action: "saveWorkSites", 
+        sites: sitesArray, 
+        data: sitesArray,
+        settings: gfSettings,
+        geofenceSettings: gfSettings
+      });
     }
 
     function renderSiteDropdowns() {
@@ -2422,14 +2438,25 @@
       localStorage.setItem("geofence_allowed_radius", radius);
       localStorage.setItem("geofence_strict_block", strict);
 
-      // Sync geofence settings to Google Sheets Cloud
+      // Sync geofence settings to Google Sheets Cloud with full multi-key fallback
+      const gfPayload = {
+        globalEnabled: isGlobalEnabled,
+        radius: String(radius),
+        strict: String(strict)
+      };
+
       postApiRequest({
         action: "saveSettings",
-        settings: {
-          globalEnabled: isGlobalEnabled,
-          radius: radius,
-          strict: strict
-        }
+        settings: gfPayload,
+        geofenceSettings: gfPayload,
+        data: gfPayload
+      });
+
+      postApiRequest({
+        action: "saveGeofenceSettings",
+        settings: gfPayload,
+        geofenceSettings: gfPayload,
+        data: gfPayload
       });
 
       closeModal("sitesModal");
@@ -2625,16 +2652,28 @@
           renderSiteDropdowns();
         }
 
-        const remoteSettings = data.settings || data.geofenceSettings;
+        const remoteSettings = data.settings || data.geofenceSettings || data.globalSettings || (data.result ? (data.result.settings || data.result.geofenceSettings || data.result.globalSettings) : null);
         if (remoteSettings) {
-          if (remoteSettings.globalEnabled !== undefined) {
-            localStorage.setItem("geofence_global_enabled", remoteSettings.globalEnabled ? "true" : "false");
+          const isTrueVal = (val) => {
+            if (val === true || val === 1) return true;
+            if (typeof val === 'string') {
+              const s = val.trim().toLowerCase();
+              return s === 'true' || s === '1' || s === 'yes';
+            }
+            return false;
+          };
+
+          if (remoteSettings.globalEnabled !== undefined && remoteSettings.globalEnabled !== null) {
+            const isEnabled = isTrueVal(remoteSettings.globalEnabled);
+            localStorage.setItem("geofence_global_enabled", isEnabled ? "true" : "false");
           }
-          if (remoteSettings.radius !== undefined) {
-            localStorage.setItem("geofence_allowed_radius", String(remoteSettings.radius));
+          if (remoteSettings.radius !== undefined && remoteSettings.radius !== null && String(remoteSettings.radius).trim() !== "") {
+            localStorage.setItem("geofence_allowed_radius", String(remoteSettings.radius).trim());
           }
-          if (remoteSettings.strict !== undefined) {
-            localStorage.setItem("geofence_strict_block", String(remoteSettings.strict));
+          if (remoteSettings.strict !== undefined && remoteSettings.strict !== null && String(remoteSettings.strict).trim() !== "") {
+            const sVal = String(remoteSettings.strict).trim();
+            const isStrict = isTrueVal(sVal) || sVal === "STRICT" || sVal === "true";
+            localStorage.setItem("geofence_strict_block", isStrict ? "true" : "false");
           }
         }
 
