@@ -1144,7 +1144,7 @@
   </div>
 
   <!-- ==================== MODAL: LOADING SPINNER ==================== -->
-  <div id="loadingModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center">
+  <div id="loadingModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center pointer-events-none">
     <div class="bg-white/95 px-6 py-5 rounded-2xl shadow-2xl modal-pop flex items-center space-x-3 border border-slate-100">
       <i class="fa-solid fa-circle-notch text-sky-600 text-2xl spin-slow"></i>
       <span id="loadingMessage" class="text-sm font-medium text-slate-700">กำลังดำเนินการ...</span>
@@ -1956,7 +1956,8 @@
       startRealTimeClock();
       document.getElementById("logDate").value = getTodayString(0);
       renderSiteDropdowns();
-      fetchInitialData();
+      renderApp(true);
+      fetchInitialData(true);
       getGpsLocation();
     });
 
@@ -2856,9 +2857,9 @@
         if (employeesData.length === 0) employeesData = DEFAULT_INITIAL_EMPLOYEES;
         if (!isSilent) showToast("ใช้งานโหมดเครื่อง / ไม่พบ API", "error");
       } finally {
-        if (!isSilent) hideLoading();
+        hideLoading();
         if (refreshIcon) refreshIcon.classList.remove("spin-slow");
-        renderApp();
+        renderApp(true);
       }
     }
 
@@ -4088,12 +4089,20 @@
     }
 
     function showLoading(msg = "กำลังดำเนินการ...") {
-      document.getElementById("loadingMessage").innerText = msg;
-      document.getElementById("loadingModal").classList.remove("hidden");
+      const modal = document.getElementById("loadingModal");
+      if (modal) {
+        document.getElementById("loadingMessage").innerText = msg;
+        modal.classList.remove("hidden");
+        modal.classList.remove("pointer-events-none");
+      }
     }
 
     function hideLoading() {
-      document.getElementById("loadingModal").classList.add("hidden");
+      const modal = document.getElementById("loadingModal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.add("pointer-events-none");
+      }
     }
 
     function showToast(text, type = "success") {
