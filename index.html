@@ -932,19 +932,19 @@
     <div class="relative max-w-xs w-full bg-slate-900 p-4 rounded-3xl modal-pop text-center space-y-3 shadow-2xl border border-slate-800">
       <div class="flex justify-between items-center text-white border-b border-slate-800 pb-2">
         <h4 class="text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-camera text-sky-400"></i> ถ่ายรูปเช็คอินด้วยกล้อง</h4>
-        <div class="flex items-center gap-1.5">
-          <button type="button" onclick="switchCameraFacingMode()" title="สลับกล้องหน้า / กล้องหลัง" 
-            class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-[11px] font-bold rounded-xl border border-slate-700 flex items-center gap-1 transition-all">
-            <i class="fa-solid fa-camera-rotate text-xs"></i> <span>สลับกล้อง</span>
-          </button>
-          <button type="button" onclick="closeCameraModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
+        <button type="button" onclick="closeCameraModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
-      <div class="relative rounded-2xl overflow-hidden bg-black aspect-square flex items-center justify-center border border-slate-800 shadow-inner">
+      <div class="relative rounded-2xl overflow-hidden bg-black aspect-square flex items-center justify-center border border-slate-800 shadow-inner group">
         <video id="cameraVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+        <!-- Floating Camera Flip Button (Native Smartphone Camera Style) -->
+        <button type="button" onclick="switchCameraFacingMode()" title="กดเพื่อสลับกล้องหน้า / กล้องหลัง"
+          class="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-900 active:scale-95 text-amber-300 border border-amber-400/50 shadow-lg flex items-center justify-center text-sm z-20 backdrop-blur-xs transition-all">
+          <i class="fa-solid fa-camera-rotate text-base"></i>
+        </button>
 
         <!-- Permission Error Banner Overlay (Shown if camera blocked - Never bounce to file attachment) -->
         <div id="cameraPermissionError" class="hidden absolute inset-0 bg-slate-900/95 p-4 flex flex-col items-center justify-center text-center space-y-2 z-10">
@@ -961,12 +961,17 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button type="button" onclick="closeCameraModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors">
+      <!-- Action Control Buttons -->
+      <div class="grid grid-cols-3 gap-2 pt-0.5">
+        <button type="button" onclick="closeCameraModal()" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-xs font-semibold rounded-2xl transition-colors">
           ยกเลิก
         </button>
-        <button type="button" onclick="captureFromLiveStream()" class="flex-1 py-2 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-circle text-rose-500 text-xs animate-pulse"></i> กดถ่ายรูป
+        <button type="button" onclick="switchCameraFacingMode()" title="สลับกล้องหน้า / กล้องหลัง"
+          class="py-2.5 bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-300 text-xs font-bold rounded-2xl border border-amber-400/40 flex items-center justify-center gap-1 transition-all">
+          <i class="fa-solid fa-camera-rotate text-sm"></i> สลับกล้อง
+        </button>
+        <button type="button" onclick="captureFromLiveStream()" class="py-2.5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-1">
+          <i class="fa-solid fa-circle text-rose-500 text-[10px] animate-pulse"></i> กดถ่ายรูป
         </button>
       </div>
     </div>
