@@ -1990,21 +1990,37 @@
 
     async function openLiveCameraModal() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        showLoading("กำลังเปิดกล้องถ่ายรูป...");
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 640 } },
-            audio: false
-          });
+          let stream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } },
+              audio: false
+            });
+          } catch (err1) {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          }
+          
           mediaStreamTrack = stream;
           const video = document.getElementById("cameraVideo");
-          if (video) video.srcObject = stream;
+          if (video) {
+            video.srcObject = stream;
+            video.play().catch(e => console.warn("video play error:", e));
+          }
+          hideLoading();
           document.getElementById("cameraModal").classList.remove("hidden");
           return;
         } catch (err) {
-          console.warn("getUserMedia error:", err);
+          hideLoading();
+          console.warn("getUserMedia camera access error:", err);
           showToast("เปิดกล้องสดไม่ได้ กำลังเปิดกล้องของอุปกรณ์แทน...", "warning");
         }
       }
+      
       const cameraInput = document.getElementById("cameraDirectInput");
       if (cameraInput) {
         cameraInput.value = "";
