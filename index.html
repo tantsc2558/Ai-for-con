@@ -782,7 +782,7 @@
                 </button>
               </div>
 
-              <input type="file" id="cameraDirectInput" accept="image/*" capture="user" onchange="handlePhotoCaptured(event)" style="display: none;" />
+              <input type="file" id="cameraDirectInput" accept="image/*" capture="environment" onchange="handlePhotoCaptured(event)" style="display: none;" />
               <input type="file" id="galleryFileInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
 
               <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
@@ -1962,9 +1962,14 @@
     let mediaStreamTrack = null;
 
     function openDirectCamera() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        openLiveCameraModal();
+        return;
+      }
       const cameraInput = document.getElementById("cameraDirectInput");
       if (cameraInput) {
         cameraInput.value = "";
+        cameraInput.setAttribute("capture", "environment");
         cameraInput.click();
       }
     }
@@ -1980,7 +1985,7 @@
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+            video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 640 } },
             audio: false
           });
           mediaStreamTrack = stream;
@@ -1993,7 +1998,12 @@
           showToast("เปิดกล้องสดไม่ได้ กำลังเปิดกล้องของอุปกรณ์แทน...", "warning");
         }
       }
-      openDirectCamera();
+      const cameraInput = document.getElementById("cameraDirectInput");
+      if (cameraInput) {
+        cameraInput.value = "";
+        cameraInput.setAttribute("capture", "environment");
+        cameraInput.click();
+      }
     }
 
     function closeCameraModal() {
