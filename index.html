@@ -2906,7 +2906,7 @@
             const cleanDate = normalizeDateStr(log.date);
 
             // 2. Clean timeIn and timeOut (with fallbacks for all Google Sheets field keys)
-            const rawTimeIn = log.timeIn || log.time_in || log.clockIn || log.checkIn || log["เวลาเข้า"] || log["Time In"] || "";
+            const rawTimeIn = log.timeIn || log.time_in || log.clockIn || log.checkIn || log["เวลาเข้า"] || log["Time In"] || log.time || "";
             const rawTimeOut = log.timeOut || log.time_out || log.clockOut || log.checkOut || log["เวลาออก"] || log["Time Out"] || "";
             const cleanIn = formatHHMM(rawTimeIn);
             let cleanOut = formatHHMM(rawTimeOut);
@@ -2914,13 +2914,17 @@
               cleanOut = ""; // If not completed, timeOut is empty waiting for clock out
             }
 
-            // 3. Clean site (if site looks corrupted like a Date string, default to 'สำนักงานใหญ่')
+            // 3. Clean photoData & gpsCoords with all possible property key fallbacks
+            const cleanPhoto = log.photoData || log.photo || log.photo_data || log["รูปถ่าย"] || log["Photo"] || "";
+            const cleanGps = log.gpsCoords || log.gps || log.gps_coords || log["พิกัด"] || log["GPS"] || "";
+
+            // 4. Clean site (if site looks corrupted like a Date string, default to 'สำนักงานใหญ่')
             let cleanSite = log.site ? String(log.site).trim() : 'สำนักงานใหญ่';
             if (cleanSite.includes("GMT") || cleanSite.includes("1899") || cleanSite.includes("2026") || cleanSite.includes("00:00:00")) {
               cleanSite = 'สำนักงานใหญ่';
             }
 
-            // 4. Clean OT hours (if otHours looks corrupted like 1000, default to 0)
+            // 5. Clean OT hours (if otHours looks corrupted like 1000, default to 0)
             let ot = parseFloat(log.otHours) || 0;
             if (ot > 24) ot = 0;
 
@@ -2931,7 +2935,9 @@
               timeIn: cleanIn,
               timeOut: cleanOut,
               site: cleanSite,
-              otHours: ot
+              otHours: ot,
+              photoData: cleanPhoto,
+              gpsCoords: cleanGps
             };
           });
 
@@ -4181,7 +4187,50 @@
           const nextNum = logsData.length + 1;
           targetId = `LOG-${String(nextNum).padStart(3, '0')}`;
           const formattedIn = formatHHMM(timeIn) || getCurrentHHMM();
-          const newLog = { id: targetId, employeeName, site, date, timeIn: formattedIn, timeOut: "", workHours, otHours, totalWage, status, notes, gpsCoords, photoData, completed: false, adminApproved: adminApprovedFlag };
+          const cleanDate = normalizeDateStr(date) || getTodayString(0);
+          
+          const newLog = { 
+            id: targetId, 
+            employeeName: employeeName, 
+            site: site, 
+            date: cleanDate, 
+            
+            // Time In multi-key fallbacks for Google Apps Script
+            timeIn: formattedIn, 
+            time_in: formattedIn,
+            checkIn: formattedIn,
+            clockIn: formattedIn,
+            time: formattedIn,
+
+            // Time Out multi-key fallbacks for Google Apps Script
+            timeOut: "", 
+            time_out: "",
+            checkOut: "",
+            clockOut: "",
+
+            workHours: workHours, 
+            work_hours: workHours,
+            otHours: otHours, 
+            ot_hours: otHours,
+            totalWage: totalWage, 
+            total_wage: totalWage,
+            status: status, 
+            notes: notes, 
+
+            // GPS multi-key fallbacks for Google Apps Script
+            gpsCoords: gpsCoords,
+            gps: gpsCoords,
+            gps_coords: gpsCoords,
+
+            // Photo multi-key fallbacks for Google Apps Script
+            photoData: photoData, 
+            photo: photoData,
+            photo_data: photoData,
+
+            completed: false, 
+            adminApproved: adminApprovedFlag 
+          };
+
           logsData.unshift(newLog);
           await postApiRequest({ action: "addLog", data: newLog });
           await fetchInitialData(true);
