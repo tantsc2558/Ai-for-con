@@ -781,7 +781,8 @@
                 </button>
               </div>
 
-              <input type="file" id="cameraInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
+              <input type="file" id="cameraDirectInput" accept="image/*" capture="environment" onchange="handlePhotoCaptured(event)" style="display: none;" />
+              <input type="file" id="galleryFileInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
 
               <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                 <i class="fa-solid fa-location-dot text-slate-400"></i> <span id="gpsText">ยังไม่ได้ดึงพิกัด</span>
@@ -1960,14 +1961,13 @@
     let mediaStreamTrack = null;
 
     function openDirectCamera() {
-      const input = document.getElementById("cameraInput");
+      const input = document.getElementById("cameraDirectInput") || document.getElementById("galleryFileInput");
       if (!input) return;
       input.value = "";
 
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       if (isMobile) {
-        input.setAttribute("capture", "environment");
         input.click();
       } else {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
@@ -1981,31 +1981,18 @@
             document.getElementById("cameraModal").classList.remove("hidden");
           }).catch(err => {
             console.warn("Desktop live webcam stream not available, opening file dialog:", err);
-            input.removeAttribute("capture");
             input.click();
           });
         } else {
-          input.removeAttribute("capture");
           input.click();
         }
       }
     }
 
     function openGallery() {
-      const input = document.getElementById("cameraInput");
+      const input = document.getElementById("galleryFileInput") || document.getElementById("cameraDirectInput");
       if (!input) return;
       input.value = "";
-      input.removeAttribute("capture");
-      input.accept = "image/*,video/*";
-      input.click();
-    }
-
-    function openDirectCamera() {
-      const input = document.getElementById("cameraInput");
-      if (!input) return;
-      input.value = "";
-      input.setAttribute("capture", "environment");
-      input.accept = "image/*,video/*";
       input.click();
     }
 
@@ -2063,67 +2050,128 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, width, height);
 
-      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.65);
 
       document.getElementById("logPhotoData").value = compressedBase64;
-      document.getElementById("photoImg").src = compressedBase64;
-      document.getElementById("photoImg").classList.remove("hidden");
-      document.getElementById("photoIcon").classList.add("hidden");
+      
+      const photoImg = document.getElementById("photoImg");
+      const photoVideo = document.getElementById("photoVideo");
+      const photoIcon = document.getElementById("photoIcon");
+      
+      if (photoVideo) photoVideo.classList.add("hidden");
+      if (photoImg) {
+        photoImg.src = compressedBase64;
+        photoImg.classList.remove("hidden");
+      }
+      if (photoIcon) photoIcon.classList.add("hidden");
 
       closeCameraModal();
       showToast("ถ่ายรูปเช็คอินสำเร็จ!", "success");
     }
 
     function handlePhotoCaptured(event) {
-      const file = event.target.files[0];
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
 
-      showLoading("กำลังประมวลผลรูปถ่าย...");
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
+      showLoading("กำลังประมวลผลไฟล์...");
+      const inputTarget = event.target;
 
-      img.onload = function() {
-        URL.revokeObjectURL(objectUrl);
-        const canvas = document.createElement("canvas");
-        const maxDim = 350;
-        let width = img.width;
-        let height = img.height;
+      // 1. Handle Video Files (MP4, MOV, WEBM)
+      if (file.type && file.type.startsWith("video/")) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const videoDataUrl = e.target.result;
+          document.getElementById("logPhotoData").value = videoDataUrl;
+          
+          const photoImg = document.getElementById("photoImg");
+          const photoVideo = document.getElementById("photoVideo");
+          const photoIcon = document.getElementById("photoIcon");
 
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
+          if (photoImg) photoImg.classList.add("hidden");
+          if (photoVideo) {
+            photoVideo.src = videoDataUrl;
+            photoVideo.classList.remove("hidden");
           }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
+          if (photoIcon) photoIcon.classList.add("hidden");
+
+          inputTarget.value = "";
+          hideLoading();
+          showToast("แนบไฟล์วิดีโอสำเร็จ!", "success");
+        };
+
+        reader.onerror = function() {
+          inputTarget.value = "";
+          hideLoading();
+          showToast("ไม่สามารถอ่านไฟล์วิดีโอได้", "error");
+        };
+
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // 2. Handle Image Files (JPEG, PNG, WEBP, HEIC) with FileReader & Canvas Resize
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          const maxDim = 400; // Optimal max resolution for fast upload
+          let width = img.width || 400;
+          let height = img.height || 400;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
           }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
 
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
-        
-        document.getElementById("logPhotoData").value = compressedBase64;
-        document.getElementById("photoImg").src = compressedBase64;
-        document.getElementById("photoImg").classList.remove("hidden");
-        document.getElementById("photoIcon").classList.add("hidden");
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.65);
+          
+          document.getElementById("logPhotoData").value = compressedBase64;
+          
+          const photoImg = document.getElementById("photoImg");
+          const photoVideo = document.getElementById("photoVideo");
+          const photoIcon = document.getElementById("photoIcon");
 
-        hideLoading();
-        showToast("ถ่ายรูปเช็คอินสำเร็จ!", "success");
+          if (photoVideo) photoVideo.classList.add("hidden");
+          if (photoImg) {
+            photoImg.src = compressedBase64;
+            photoImg.classList.remove("hidden");
+          }
+          if (photoIcon) photoIcon.classList.add("hidden");
+
+          inputTarget.value = "";
+          hideLoading();
+          showToast("ถ่ายรูป/แนบรูปภาพสำเร็จ!", "success");
+        };
+
+        img.onerror = function() {
+          inputTarget.value = "";
+          hideLoading();
+          showToast("ไม่สามารถประมวลผลรูปภาพได้", "error");
+        };
+
+        img.src = e.target.result;
       };
 
-      img.onerror = function() {
-        URL.revokeObjectURL(objectUrl);
+      reader.onerror = function() {
+        inputTarget.value = "";
         hideLoading();
-        showToast("ไม่สามารถโหลดรูปภาพได้", "error");
+        showToast("ไม่สามารถอ่านไฟล์ได้", "error");
       };
 
-      img.src = objectUrl;
+      reader.readAsDataURL(file);
     }
 
     function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
