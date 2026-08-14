@@ -2901,9 +2901,35 @@
               const empMatch = employeesData.find(e => e.id === log.employeeId || e.name === log.employeeName);
               if (empMatch) name = empMatch.name;
             }
+
+            // 1. Clean date to standard YYYY-MM-DD
+            const cleanDate = normalizeDateStr(log.date);
+
+            // 2. Clean timeIn and timeOut
+            const cleanIn = formatHHMM(log.timeIn);
+            let cleanOut = formatHHMM(log.timeOut);
+            if (cleanOut === "00:00" && (!log.completed || log.completed === "false" || log.completed === false)) {
+              cleanOut = ""; // If not completed, timeOut is empty waiting for clock out
+            }
+
+            // 3. Clean site (if site looks corrupted like a Date string, default to 'สำนักงานใหญ่')
+            let cleanSite = log.site ? String(log.site).trim() : 'สำนักงานใหญ่';
+            if (cleanSite.includes("GMT") || cleanSite.includes("1899") || cleanSite.includes("2026") || cleanSite.includes("00:00:00")) {
+              cleanSite = 'สำนักงานใหญ่';
+            }
+
+            // 4. Clean OT hours (if otHours looks corrupted like 1000, default to 0)
+            let ot = parseFloat(log.otHours) || 0;
+            if (ot > 24) ot = 0;
+
             return {
               ...log,
-              employeeName: name || "พนักงาน"
+              employeeName: name || "พนักงาน",
+              date: cleanDate,
+              timeIn: cleanIn,
+              timeOut: cleanOut,
+              site: cleanSite,
+              otHours: ot
             };
           });
         }
@@ -3413,40 +3439,30 @@
     }
 
     function formatHHMM(timeStr) {
-      if (!timeStr || timeStr === "" || timeStr === "-") return "";
+      if (!timeStr || timeStr === "" || timeStr === "-" || timeStr === "ยังไม่ลง") return "";
       let str = String(timeStr).trim();
+
+      // Direct regex match for HH:MM pattern (e.g., "07:40", "07:40:00", or "Sat Dec 30 1899 07:40:00 GMT+0642")
+      const match = str.match(/(\d{1,2}):(\d{2})/);
+      if (match) {
+        const h = parseInt(match[1], 10);
+        const m = match[2];
+        if (h >= 0 && h <= 23 && parseInt(m, 10) >= 0 && parseInt(m, 10) <= 59) {
+          return `${String(h).padStart(2, '0')}:${m}`;
+        }
+      }
 
       if (str.includes("T")) {
         const timePart = str.split("T")[1];
         if (timePart) {
-          const timeSub = timePart.split(".")[0];
-          const parts = timeSub.split(":");
+          const parts = timePart.split(":");
           if (parts.length >= 2) {
             return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
           }
         }
       }
 
-      if (/^\d{1,2}:\d{2}/.test(str)) {
-        const parts = str.split(":");
-        return `${parts[0].padStart(2, '0')}:${parts[1].substring(0, 2)}`;
-      }
-
-      try {
-        const d = new Date(str);
-        if (!isNaN(d.getTime())) {
-          const hours = String(d.getHours()).padStart(2, '0');
-          const mins = String(d.getMinutes()).padStart(2, '0');
-          return `${hours}:${mins}`;
-        }
-      } catch (e) {}
-
-      const match = str.match(/(\d{1,2}):(\d{2})/);
-      if (match) {
-        return `${match[1].padStart(2, '0')}:${match[2]}`;
-      }
-
-      return str;
+      return "";
     }
 
     function submitAttendance(actionType) {
