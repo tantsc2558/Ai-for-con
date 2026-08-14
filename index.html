@@ -3173,7 +3173,7 @@
       });
 
       // Skip DOM re-creation if data hasn't changed to eliminate screen jerking/flickering!
-      if (!force && currentState === lastRenderedState) {
+      if (currentState === lastRenderedState) {
         renderSiteDropdowns();
         updateStats();
         return;
@@ -3280,7 +3280,7 @@
 
     function createLogCard(l, index) {
       const card = document.createElement("div");
-      card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all fade-in-up space-y-2.5 relative";
+      card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all space-y-2.5 relative";
       const badgeClass = getStatusBadgeClass(l.status);
 
       const displayWage = isAdminMode ? `฿${(parseFloat(l.totalWage) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}` : '฿***';
@@ -3375,7 +3375,7 @@
 
     function createEmployeeCard(emp, index) {
       const card = document.createElement("div");
-      card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all fade-in-up space-y-2.5 relative";
+      card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all space-y-2.5 relative";
       const badgeClass = getStatusBadgeClass(emp.status);
 
       const empLogs = logsData.filter(l => l.employeeName === emp.name);
