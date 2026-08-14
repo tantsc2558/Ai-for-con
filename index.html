@@ -3319,7 +3319,7 @@
 
         ${isAdminMode ? `
         <div class="flex justify-end gap-2 pt-1 border-t border-slate-50">
-          <button onclick="openEditLog(${index})" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors flex items-center gap-1">
+          <button onclick="openEditLog('${l.id}')" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors flex items-center gap-1">
             <i class="fa-solid fa-pen-to-square"></i> แก้ไข
           </button>
           <button onclick="confirmDelete('log', '${l.id}', ${index})" class="px-2.5 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex items-center gap-1">
@@ -3904,15 +3904,41 @@
       return { workHours, otHours: approvedOtHours, totalWage };
     }
 
-    function openEditLog(index) {
+    function openEditLog(logIdOrIndex) {
       if (!isAdminMode) {
         showToast("สิทธิ์ Admin เท่านั้นที่แก้ไขรายการได้", "error");
         return;
       }
-      const l = logsData[index];
-      if (!l) return;
+
+      let l = null;
+      let realIndex = -1;
+
+      if (typeof logIdOrIndex === "number" && logIdOrIndex >= 0) {
+        realIndex = logIdOrIndex;
+        l = logsData[logIdOrIndex];
+      }
+
+      if (!l && logIdOrIndex !== undefined && logIdOrIndex !== null) {
+        realIndex = logsData.findIndex(item => String(item.id) === String(logIdOrIndex));
+        if (realIndex !== -1) {
+          l = logsData[realIndex];
+        }
+      }
+
+      if (!l && typeof logIdOrIndex === "string") {
+        realIndex = logsData.findIndex(item => item.employeeName && item.employeeName.trim() === logIdOrIndex.trim());
+        if (realIndex !== -1) {
+          l = logsData[realIndex];
+        }
+      }
+
+      if (!l) {
+        showToast("ไม่พบข้อมูลรายการที่ต้องการแก้ไข", "error");
+        return;
+      }
+
       document.getElementById("logModalTitle").innerText = "แก้ไขบันทึกเวลาเข้า-ออก & OT (Admin)";
-      document.getElementById("logFormIndex").value = index;
+      document.getElementById("logFormIndex").value = realIndex;
       document.getElementById("pinVerificationContainer").style.display = "none";
       populateEmployeeDropdown(l.employeeName);
       renderSiteDropdowns();
@@ -3962,7 +3988,13 @@
             photoImg.classList.remove("hidden");
           }
         }
-        document.getElementById("photoIcon").classList.add("hidden");
+        const photoIcon = document.getElementById("photoIcon");
+        if (photoIcon) photoIcon.classList.add("hidden");
+        const photoBox = document.getElementById("photoPreviewBox");
+        if (photoBox) photoBox.classList.remove("hidden");
+      } else {
+        const photoBox = document.getElementById("photoPreviewBox");
+        if (photoBox) photoBox.classList.add("hidden");
       }
 
       updateCheckInOutState();
