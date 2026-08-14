@@ -932,9 +932,15 @@
     <div class="relative max-w-xs w-full bg-slate-900 p-4 rounded-3xl modal-pop text-center space-y-3 shadow-2xl border border-slate-800">
       <div class="flex justify-between items-center text-white border-b border-slate-800 pb-2">
         <h4 class="text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-camera text-sky-400"></i> ถ่ายรูปเช็คอินด้วยกล้อง</h4>
-        <button type="button" onclick="closeCameraModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="switchCameraFacingMode()" title="สลับกล้องหน้า / กล้องหลัง" 
+            class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-[11px] font-bold rounded-xl border border-slate-700 flex items-center gap-1 transition-all">
+            <i class="fa-solid fa-camera-rotate text-xs"></i> <span>สลับกล้อง</span>
+          </button>
+          <button type="button" onclick="closeCameraModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <div class="relative rounded-2xl overflow-hidden bg-black aspect-square flex items-center justify-center border border-slate-800 shadow-inner">
@@ -1983,6 +1989,7 @@
     });
 
     let mediaStreamTrack = null;
+    let currentFacingMode = "environment"; // "environment" = back camera, "user" = front selfie camera
 
     function openDirectCamera() {
       openLiveCameraModal();
@@ -1995,9 +2002,29 @@
       input.click();
     }
 
+    async function switchCameraFacingMode() {
+      // Toggle between back and front camera
+      currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+      showToast(currentFacingMode === "user" ? "📷 สลับเป็นกล้องหน้า" : "📷 สลับเป็นกล้องหลัง", "info");
+
+      // Stop current stream before requesting new mode
+      if (mediaStreamTrack) {
+        mediaStreamTrack.getTracks().forEach(track => track.stop());
+        mediaStreamTrack = null;
+      }
+
+      await openLiveCameraModal();
+    }
+
     async function openLiveCameraModal() {
       const errorOverlay = document.getElementById("cameraPermissionError");
       if (errorOverlay) errorOverlay.classList.add("hidden");
+
+      // Stop existing stream if any
+      if (mediaStreamTrack) {
+        mediaStreamTrack.getTracks().forEach(track => track.stop());
+        mediaStreamTrack = null;
+      }
 
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         showLoading("กำลังเปิดกล้องถ่ายรูป...");
@@ -2005,14 +2032,21 @@
           let stream;
           try {
             stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } },
+              video: { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 640 } },
               audio: false
             });
           } catch (err1) {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-              audio: false
-            });
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 640 } },
+                audio: false
+              });
+            } catch (err2) {
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+              });
+            }
           }
           
           mediaStreamTrack = stream;
@@ -2040,7 +2074,7 @@
         const cameraInput = document.getElementById("cameraDirectInput");
         if (cameraInput) {
           cameraInput.value = "";
-          cameraInput.setAttribute("capture", "environment");
+          cameraInput.setAttribute("capture", currentFacingMode);
           cameraInput.click();
         }
       } else {
