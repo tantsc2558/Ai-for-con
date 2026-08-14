@@ -2102,7 +2102,7 @@
       if (!video || !video.srcObject) return;
 
       const canvas = document.createElement("canvas");
-      const maxDim = 350;
+      const maxDim = 240; // Compact max resolution to fit Google Sheets 50,000 char cell limit
       let width = video.videoWidth || 640;
       let height = video.videoHeight || 640;
 
@@ -2123,7 +2123,7 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, width, height);
 
-      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.65);
+      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.45);
 
       document.getElementById("logPhotoData").value = compressedBase64;
       
@@ -2199,9 +2199,9 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement("canvas");
-          const maxDim = 400; // Optimal max resolution for fast upload
-          let width = img.width || 400;
-          let height = img.height || 400;
+          const maxDim = 240; // Compact max resolution to fit Google Sheets 50,000 char cell limit
+          let width = img.width || 240;
+          let height = img.height || 240;
 
           if (width > height) {
             if (width > maxDim) {
@@ -2220,7 +2220,7 @@
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, width, height);
 
-          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.65);
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.45);
           
           document.getElementById("logPhotoData").value = compressedBase64;
           
