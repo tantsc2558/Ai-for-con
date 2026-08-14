@@ -1985,20 +1985,11 @@
     let mediaStreamTrack = null;
 
     function openDirectCamera() {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        openLiveCameraModal();
-        return;
-      }
-      const cameraInput = document.getElementById("cameraDirectInput");
-      if (cameraInput) {
-        cameraInput.value = "";
-        cameraInput.setAttribute("capture", "environment");
-        cameraInput.click();
-      }
+      openLiveCameraModal();
     }
 
     function openGallery() {
-      const input = document.getElementById("galleryFileInput") || document.getElementById("cameraDirectInput");
+      const input = document.getElementById("galleryFileInput");
       if (!input) return;
       input.value = "";
       input.click();
@@ -2044,7 +2035,19 @@
         }
       }
       
-      showToast("เบราว์เซอร์ไม่รองรับกล้องถ่ายรูปสด", "error");
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+      if (isMobile) {
+        const cameraInput = document.getElementById("cameraDirectInput");
+        if (cameraInput) {
+          cameraInput.value = "";
+          cameraInput.setAttribute("capture", "environment");
+          cameraInput.click();
+        }
+      } else {
+        showToast("เบราว์เซอร์ไม่รองรับกล้องสด หรือไม่พบกล้องเว็บแคม", "error");
+        if (errorOverlay) errorOverlay.classList.remove("hidden");
+        document.getElementById("cameraModal").classList.remove("hidden");
+      }
     }
 
     function closeCameraModal() {
