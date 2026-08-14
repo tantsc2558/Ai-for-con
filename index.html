@@ -2902,29 +2902,72 @@
               if (empMatch) name = empMatch.name;
             }
 
-            // 1. Clean date to standard YYYY-MM-DD
-            const cleanDate = normalizeDateStr(log.date);
+            // 1. Smart Date Extraction (check log.site, log.date, or fallback to today)
+            let cleanDate = "";
+            if (log.site && String(log.site).match(/202\d|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i)) {
+              cleanDate = normalizeDateStr(log.site);
+            }
+            if (!cleanDate) {
+              cleanDate = normalizeDateStr(log.date);
+            }
+            if (!cleanDate) cleanDate = getTodayString(0);
 
-            // 2. Clean timeIn and timeOut (with fallbacks for all Google Sheets field keys)
-            const rawTimeIn = log.timeIn || log.time_in || log.clockIn || log.checkIn || log["เวลาเข้า"] || log["Time In"] || log.time || "";
-            const rawTimeOut = log.timeOut || log.time_out || log.clockOut || log.checkOut || log["เวลาออก"] || log["Time Out"] || "";
+            // 2. Smart Time In Extraction (check log.timeIn, log.date timestamp, log.time_in, etc.)
+            let rawTimeIn = log.timeIn || log.time_in || log.clockIn || log.checkIn || log.time || "";
+            if (!rawTimeIn || rawTimeIn === "") {
+              if (log.date && String(log.date).match(/\d{1,2}:\d{2}/)) {
+                rawTimeIn = log.date;
+              }
+            }
             const cleanIn = formatHHMM(rawTimeIn);
+
+            // 3. Smart Time Out Extraction
+            let rawTimeOut = log.timeOut || log.time_out || log.clockOut || log.checkOut || "";
+            if (!rawTimeOut && log.workHours && String(log.workHours).match(/\d{1,2}:\d{2}/)) {
+              rawTimeOut = log.workHours;
+            }
             let cleanOut = formatHHMM(rawTimeOut);
-            if (cleanOut === "00:00" && (!log.completed || log.completed === "false" || log.completed === false)) {
-              cleanOut = ""; // If not completed, timeOut is empty waiting for clock out
+            if (cleanOut === "00:00" || cleanOut === "08:00" || cleanOut === "8") {
+              if (!log.completed || log.completed === "false" || log.completed === false) {
+                cleanOut = ""; // Waiting for clock out
+              }
             }
 
-            // 3. Clean photoData & gpsCoords with all possible property key fallbacks
-            const cleanPhoto = log.photoData || log.photo || log.photo_data || log["รูปถ่าย"] || log["Photo"] || "";
-            const cleanGps = log.gpsCoords || log.gps || log.gps_coords || log["พิกัด"] || log["GPS"] || "";
-
-            // 4. Clean site (if site looks corrupted like a Date string, default to 'สำนักงานใหญ่')
-            let cleanSite = log.site ? String(log.site).trim() : 'สำนักงานใหญ่';
-            if (cleanSite.includes("GMT") || cleanSite.includes("1899") || cleanSite.includes("2026") || cleanSite.includes("00:00:00")) {
-              cleanSite = 'สำนักงานใหญ่';
+            // 4. Smart Site Extraction
+            let cleanSite = "สำนักงานใหญ่";
+            if (log.site && !String(log.site).includes("GMT") && !String(log.site).includes("1899") && !String(log.site).includes("2026")) {
+              cleanSite = String(log.site).trim();
+            } else if (log.totalWage && !String(log.totalWage).includes("?") && isNaN(parseFloat(log.totalWage))) {
+              cleanSite = String(log.totalWage).trim();
+            } else if (log.status && !String(log.status).includes("?") && (String(log.status).includes("สำนักงาน") || String(log.status).includes("โครงการ") || String(log.status).includes("Site"))) {
+              cleanSite = String(log.status).trim();
             }
 
-            // 5. Clean OT hours (if otHours looks corrupted like 1000, default to 0)
+            // 5. Smart Photo Extraction (scan all object keys for Base64 image/video data)
+            let cleanPhoto = log.photoData || log.photo || log.photo_data || log["รูปถ่าย"] || log["Photo"] || "";
+            if (!cleanPhoto) {
+              for (const k in log) {
+                const val = String(log[k]);
+                if (val.startsWith("data:image/") || val.startsWith("data:video/")) {
+                  cleanPhoto = val;
+                  break;
+                }
+              }
+            }
+
+            // 6. Smart GPS Extraction
+            let cleanGps = log.gpsCoords || log.gps || log.gps_coords || "";
+            if (!cleanGps) {
+              for (const k in log) {
+                const val = String(log[k]);
+                if (val.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
+                  cleanGps = val;
+                  break;
+                }
+              }
+            }
+
+            // 7. Clean OT hours
             let ot = parseFloat(log.otHours) || 0;
             if (ot > 24) ot = 0;
 
