@@ -762,36 +762,41 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-3">
-            <!-- Photo/Video Preview Box (Display Only - Not clickable to avoid redundant points) -->
-            <div id="photoPreviewBox" 
-              class="w-16 h-16 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 overflow-hidden relative shrink-0">
-              <i id="photoIcon" class="fa-regular fa-image text-xl text-slate-400"></i>
-              <img id="photoImg" class="w-full h-full object-cover hidden" src="" />
-              <video id="photoVideo" class="w-full h-full object-cover hidden" autoplay loop muted playsinline src=""></video>
+          <div class="space-y-2">
+            <!-- Point 1 & Point 2: ถ่ายรูปจากกล้อง + แนบไฟล์ -->
+            <div class="grid grid-cols-2 gap-2.5">
+              <button type="button" onclick="openDirectCamera()" class="bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold py-2.5 px-3 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all shadow-sm">
+                <i class="fa-solid fa-camera text-sm"></i> <span>ถ่ายรูปจากกล้อง</span>
+              </button>
+
+              <button type="button" onclick="openGallery()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold py-2.5 px-3 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all border border-slate-200">
+                <i class="fa-solid fa-paperclip text-sky-600 text-sm"></i> <span>แนบไฟล์</span>
+              </button>
             </div>
 
-            <div class="flex-1 space-y-1.5">
-              <div class="grid grid-cols-2 gap-2">
-                <!-- Point 1: ถ่ายรูปจากกล้อง -->
-                <button type="button" onclick="openDirectCamera()" class="bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold py-2.5 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all shadow-sm">
-                  <i class="fa-solid fa-camera text-sm"></i> <span>ถ่ายรูปจากกล้อง</span>
-                </button>
-
-                <!-- Point 2: แนบไฟล์ -->
-                <button type="button" onclick="openGallery()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold py-2.5 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all border border-slate-200">
-                  <i class="fa-solid fa-paperclip text-sky-600 text-sm"></i> <span>แนบไฟล์</span>
-                </button>
+            <!-- Preview Card (Appears only when a photo/video is selected) -->
+            <div id="photoPreviewBox" class="hidden bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between gap-2 shadow-xs">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100 border border-slate-200">
+                  <img id="photoImg" class="w-full h-full object-cover hidden" src="" />
+                  <video id="photoVideo" class="w-full h-full object-cover hidden" autoplay loop muted playsinline src=""></video>
+                </div>
+                <span class="text-xs font-semibold text-emerald-600 truncate flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> ถ่ายรูป/แนบไฟล์แล้ว
+                </span>
               </div>
-
-              <input type="file" id="cameraDirectInput" accept="image/*" capture="environment" onchange="handlePhotoCaptured(event)" style="display: none;" />
-              <input type="file" id="galleryFileInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
-
-              <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
-                <i class="fa-solid fa-location-dot text-slate-400"></i> <span id="gpsText">ยังไม่ได้ดึงพิกัด</span>
-              </div>
-              <div id="geofenceStatusContainer" class="mt-1"></div>
+              <button type="button" onclick="clearCapturedPhoto()" class="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors shrink-0">
+                <i class="fa-solid fa-trash-can mr-1"></i> ลบรูป
+              </button>
             </div>
+
+            <input type="file" id="cameraDirectInput" accept="image/*" capture="environment" onchange="handlePhotoCaptured(event)" style="display: none;" />
+            <input type="file" id="galleryFileInput" accept="image/*,video/*" onchange="handlePhotoCaptured(event)" style="display: none;" />
+
+            <div id="gpsStatusBadge" class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+              <i class="fa-solid fa-location-dot text-slate-400"></i> <span id="gpsText">ยังไม่ได้ดึงพิกัด</span>
+            </div>
+            <div id="geofenceStatusContainer" class="mt-1"></div>
           </div>
           <p class="text-[10px] text-rose-500 font-semibold">⚠️ ต้องถ่ายรูปและระบุพิกัด GPS ก่อนบันทึกเวลางานเสมอ</p>
         </div>
@@ -2048,17 +2053,28 @@
       
       const photoImg = document.getElementById("photoImg");
       const photoVideo = document.getElementById("photoVideo");
-      const photoIcon = document.getElementById("photoIcon");
+      const photoBox = document.getElementById("photoPreviewBox");
       
       if (photoVideo) photoVideo.classList.add("hidden");
       if (photoImg) {
         photoImg.src = compressedBase64;
         photoImg.classList.remove("hidden");
       }
-      if (photoIcon) photoIcon.classList.add("hidden");
+      if (photoBox) photoBox.classList.remove("hidden");
 
       closeCameraModal();
       showToast("ถ่ายรูปเช็คอินสำเร็จ!", "success");
+    }
+
+    function clearCapturedPhoto() {
+      document.getElementById("logPhotoData").value = "";
+      const photoImg = document.getElementById("photoImg");
+      const photoVideo = document.getElementById("photoVideo");
+      const photoBox = document.getElementById("photoPreviewBox");
+      if (photoImg) { photoImg.src = ""; photoImg.classList.add("hidden"); }
+      if (photoVideo) { photoVideo.src = ""; photoVideo.classList.add("hidden"); }
+      if (photoBox) photoBox.classList.add("hidden");
+      showToast("ลบรูปภาพแล้ว", "info");
     }
 
     function handlePhotoCaptured(event) {
@@ -2077,14 +2093,14 @@
           
           const photoImg = document.getElementById("photoImg");
           const photoVideo = document.getElementById("photoVideo");
-          const photoIcon = document.getElementById("photoIcon");
+          const photoBox = document.getElementById("photoPreviewBox");
 
           if (photoImg) photoImg.classList.add("hidden");
           if (photoVideo) {
             photoVideo.src = videoDataUrl;
             photoVideo.classList.remove("hidden");
           }
-          if (photoIcon) photoIcon.classList.add("hidden");
+          if (photoBox) photoBox.classList.remove("hidden");
 
           inputTarget.value = "";
           hideLoading();
@@ -2134,14 +2150,14 @@
           
           const photoImg = document.getElementById("photoImg");
           const photoVideo = document.getElementById("photoVideo");
-          const photoIcon = document.getElementById("photoIcon");
+          const photoBox = document.getElementById("photoPreviewBox");
 
           if (photoVideo) photoVideo.classList.add("hidden");
           if (photoImg) {
             photoImg.src = compressedBase64;
             photoImg.classList.remove("hidden");
           }
-          if (photoIcon) photoIcon.classList.add("hidden");
+          if (photoBox) photoBox.classList.remove("hidden");
 
           inputTarget.value = "";
           hideLoading();
