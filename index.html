@@ -2936,7 +2936,7 @@
               cleanSite = String(log.status).trim();
             }
 
-            // 5. Smart Photo Extraction (scan all object keys for Base64 image/video data)
+            // 5. Smart Photo Extraction (scan all object keys for Base64 image/video data + check LocalStorage cache fallback)
             let cleanPhoto = log.photoData || log.photo || log.photo_data || log["รูปถ่าย"] || log["Photo"] || "";
             if (!cleanPhoto) {
               for (const k in log) {
@@ -2946,6 +2946,13 @@
                   break;
                 }
               }
+            }
+            if (!cleanPhoto) {
+              try {
+                const cacheById = localStorage.getItem("photo_cache_" + log.id);
+                const cacheByNameDate = localStorage.getItem("photo_cache_" + (name || "").trim() + "_" + cleanDate);
+                cleanPhoto = cacheById || cacheByNameDate || "";
+              } catch(e) {}
             }
 
             // 6. Smart GPS Extraction
@@ -4273,6 +4280,13 @@
           showToast(`🟢 บันทึกเวลาเข้างาน (${formattedIn} น.) สำเร็จ!`, "success");
         }
       }
+
+      try {
+        if (photoData && photoData !== "") {
+          if (targetId) localStorage.setItem("photo_cache_" + targetId, photoData);
+          if (employeeName && date) localStorage.setItem("photo_cache_" + employeeName.trim() + "_" + normalizeDateStr(date), photoData);
+        }
+      } catch(e) {}
 
       hideLoading();
       closeModal("logModal");
