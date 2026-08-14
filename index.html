@@ -2825,7 +2825,7 @@
 
       if (!isSilent) showLoading("กำลังโหลดข้อมูลจาก Google Sheets...");
       const refreshIcon = document.getElementById("refreshIcon");
-      if (refreshIcon) refreshIcon.classList.add("spin-slow");
+      if (refreshIcon && !isSilent) refreshIcon.classList.add("spin-slow");
 
       try {
         const cacheBuster = "t=" + new Date().getTime();
@@ -4445,12 +4445,12 @@
       return dateStr;
     }
 
-    // Real-time Background Auto-Sync (Silent refresh every 5 seconds without screen jerking)
+    // Real-time Background Auto-Sync (Silent refresh every 15 seconds without icon spinning or screen jerking)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         fetchInitialData(true);
       }
-    }, 5000);
+    }, 15000);
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
