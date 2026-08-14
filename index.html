@@ -763,22 +763,24 @@
           </div>
 
           <div class="flex items-center gap-3">
-            <!-- Photo/Video Preview Thumbnail Container (Clean preview display) -->
+            <!-- Photo/Video Preview Box (Display Only - Not clickable to avoid redundant points) -->
             <div id="photoPreviewBox" 
-              class="w-16 h-16 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 overflow-hidden relative group transition-all shrink-0">
-              <i id="photoIcon" class="fa-solid fa-camera text-xl text-slate-400"></i>
+              class="w-16 h-16 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 overflow-hidden relative shrink-0">
+              <i id="photoIcon" class="fa-regular fa-image text-xl text-slate-400"></i>
               <img id="photoImg" class="w-full h-full object-cover hidden" src="" />
               <video id="photoVideo" class="w-full h-full object-cover hidden" autoplay loop muted playsinline src=""></video>
             </div>
 
             <div class="flex-1 space-y-1.5">
               <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="openDirectCamera()" class="bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold py-2 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all shadow-sm">
-                  <i class="fa-solid fa-camera text-sm"></i> <span>เปิดกล้องถ่ายรูป</span>
+                <!-- Point 1: ถ่ายรูปจากกล้อง -->
+                <button type="button" onclick="openDirectCamera()" class="bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold py-2.5 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all shadow-sm">
+                  <i class="fa-solid fa-camera text-sm"></i> <span>ถ่ายรูปจากกล้อง</span>
                 </button>
 
-                <button type="button" onclick="openGallery()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold py-2 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all border border-slate-200">
-                  <i class="fa-solid fa-folder-open text-sky-600 text-sm"></i> <span>เลือกรูป/แนบไฟล์</span>
+                <!-- Point 2: แนบไฟล์ -->
+                <button type="button" onclick="openGallery()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold py-2.5 px-2 rounded-xl inline-flex items-center justify-center gap-1.5 transition-all border border-slate-200">
+                  <i class="fa-solid fa-paperclip text-sky-600 text-sm"></i> <span>แนบไฟล์</span>
                 </button>
               </div>
 
