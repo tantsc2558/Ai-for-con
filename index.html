@@ -3386,7 +3386,7 @@
     }
 
     function normalizeDateStr(dateStr) {
-      if (!dateStr) return "";
+      if (!dateStr || dateStr === "" || dateStr === "-") return getTodayString(0);
       let str = String(dateStr).trim();
       if (str.includes("T")) {
         str = str.split("T")[0];
@@ -3421,16 +3421,18 @@
         }
       }
 
-      const d = new Date(str);
-      if (!isNaN(d.getTime())) {
-        let year = d.getFullYear();
-        if (year > 2400) year -= 543;
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${m}-${day}`;
-      }
+      try {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          let year = d.getFullYear();
+          if (year > 2400) year -= 543;
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${m}-${day}`;
+        }
+      } catch (e) {}
 
-      return str;
+      return getTodayString(0);
     }
 
     function getCurrentHHMM() {
