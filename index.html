@@ -2905,9 +2905,11 @@
             // 1. Clean date to standard YYYY-MM-DD
             const cleanDate = normalizeDateStr(log.date);
 
-            // 2. Clean timeIn and timeOut
-            const cleanIn = formatHHMM(log.timeIn);
-            let cleanOut = formatHHMM(log.timeOut);
+            // 2. Clean timeIn and timeOut (with fallbacks for all Google Sheets field keys)
+            const rawTimeIn = log.timeIn || log.time_in || log.clockIn || log.checkIn || log["เวลาเข้า"] || log["Time In"] || "";
+            const rawTimeOut = log.timeOut || log.time_out || log.clockOut || log.checkOut || log["เวลาออก"] || log["Time Out"] || "";
+            const cleanIn = formatHHMM(rawTimeIn);
+            let cleanOut = formatHHMM(rawTimeOut);
             if (cleanOut === "00:00" && (!log.completed || log.completed === "false" || log.completed === false)) {
               cleanOut = ""; // If not completed, timeOut is empty waiting for clock out
             }
