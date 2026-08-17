@@ -2986,35 +2986,13 @@
             };
           });
 
-          // PRESERVE LOCAL LOGS: Merge any freshly saved local logs that Google Sheets hasn't returned yet
+          // PRESERVE LOCAL UNPOSTED LOGS ONLY: Merge local unsynced logs strictly by unique ID
           const finalLogs = [...remoteLogs];
           logsData.forEach(localLog => {
-            if (!localLog || !localLog.employeeName) return;
-            const normalizedLocalDate = normalizeDateStr(localLog.date);
-            const inRemote = finalLogs.some(r => 
-              (r.id && localLog.id && r.id === localLog.id) ||
-              (r.employeeName && r.employeeName.trim() === localLog.employeeName.trim() && normalizeDateStr(r.date) === normalizedLocalDate)
-            );
+            if (!localLog || !localLog.id) return;
+            const inRemote = finalLogs.some(r => r.id && r.id === localLog.id);
             if (!inRemote) {
               finalLogs.unshift(localLog);
-            } else {
-              // If remote log is missing timeIn/timeOut but local log has it, preserve local values!
-              const targetIdx = finalLogs.findIndex(r => 
-                (r.id && localLog.id && r.id === localLog.id) ||
-                (r.employeeName && r.employeeName.trim() === localLog.employeeName.trim() && normalizeDateStr(r.date) === normalizedLocalDate)
-              );
-              if (targetIdx !== -1) {
-                const remoteItem = finalLogs[targetIdx];
-                if (localLog.timeIn && (!remoteItem.timeIn || remoteItem.timeIn === "")) {
-                  remoteItem.timeIn = localLog.timeIn;
-                }
-                if (localLog.timeOut && (!remoteItem.timeOut || remoteItem.timeOut === "")) {
-                  remoteItem.timeOut = localLog.timeOut;
-                }
-                if (localLog.photoData && (!remoteItem.photoData || remoteItem.photoData === "")) {
-                  remoteItem.photoData = localLog.photoData;
-                }
-              }
             }
           });
 
@@ -3217,22 +3195,13 @@
             sfClean.includes(siteStr.trim())
           );
 
-          // Hide completed clock-out entries so clocked-out employees automatically disappear from active check-in page
-          const isCompleted = l.completed === true || l.completed === "true" || (
-            l.timeIn && l.timeIn !== "" && 
-            l.timeOut && l.timeOut !== "" && l.timeOut !== "-" && l.timeOut !== "กำลังทำงาน"
-          );
-
-          // Unless user is explicitly typing a search query, hide completed clock-out records
-          const hideClockedOut = !searchQuery && isCompleted;
-
-          return matchSearch && matchSite && !hideClockedOut;
+          return matchSearch && matchSite;
         });
 
         document.getElementById("itemCountBadge").innerText = `${filtered.length} รายการ`;
 
         if (filtered.length === 0) {
-          cardsContainer.innerHTML = renderEmptyState("ไม่มีพนักงานกำลังทำงานในขณะนี้ (ลงเวลาออกงานครบแล้ว)");
+          cardsContainer.innerHTML = renderEmptyState("ไม่พบประวัติลงเวลางานตามเงื่อนไขที่เลือก");
           return;
         }
 
