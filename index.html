@@ -3674,10 +3674,20 @@
       if (formIndex !== "") {
         existingLog = logsData[parseInt(formIndex, 10)];
       } else if (empName) {
+        // Priority 1: Find any uncompleted log (has timeIn but no timeOut) for this employee from ANY date
         existingLog = logsData.find(l => 
           l.employeeName && l.employeeName.trim() === empName && 
-          normalizeDateStr(l.date) === logDate
+          l.timeIn && l.timeIn !== "" && (!l.timeOut || l.timeOut === "" || l.timeOut === "-") &&
+          (!l.completed || l.completed === false || l.completed === "false")
         );
+
+        // Priority 2: Fallback to existing log for the selected date
+        if (!existingLog) {
+          existingLog = logsData.find(l => 
+            l.employeeName && l.employeeName.trim() === empName && 
+            normalizeDateStr(l.date) === logDate
+          );
+        }
       }
 
       // 1. ADMIN EDITING AN EXISTING LOG ENTRY DIRECTLY
@@ -4182,12 +4192,19 @@
         await postApiRequest({ action: "editLog", data: updatedLog });
         showToast("บันทึกการแก้ไขข้อมูลสำเร็จ (อนุมัติเรียบร้อย)!", "success");
       } else {
-        // Check if log already exists for this employee on this date (using normalized strings)
+        // Check if log already exists for this employee (prioritize uncompleted log from any previous date)
         const targetLogDate = normalizeDateStr(date);
-        const existingIndex = logsData.findIndex(l => 
+        let existingIndex = logsData.findIndex(l => 
           l.employeeName && l.employeeName.trim() === employeeName.trim() && 
-          normalizeDateStr(l.date) === targetLogDate
+          l.timeIn && l.timeIn !== "" && (!l.timeOut || l.timeOut === "" || l.timeOut === "-") &&
+          (!l.completed || l.completed === false || l.completed === "false")
         );
+        if (existingIndex === -1) {
+          existingIndex = logsData.findIndex(l => 
+            l.employeeName && l.employeeName.trim() === employeeName.trim() && 
+            normalizeDateStr(l.date) === targetLogDate
+          );
+        }
 
         if (existingIndex !== -1) {
           const prevLog = logsData[existingIndex];
@@ -4200,10 +4217,21 @@
           }
 
           if (actionType === "clock_out" || (prevLog.timeIn && !prevLog.timeOut)) {
-            // Clock Out mode -> Update existing log entry for today
+            // Clock Out mode -> Update existing log entry (preserve original clockIn date and record clockOut date)
             targetId = prevLog.id;
+            const cleanDateIn = prevLog.dateIn || prevLog.date || targetLogDate;
+            const cleanDateOut = getTodayString(0);
+
             const updatedLog = {
               ...prevLog,
+              date: cleanDateIn, // Keep original clock-in date
+              dateIn: cleanDateIn,
+              date_in: cleanDateIn,
+              checkInDate: cleanDateIn,
+              dateOut: cleanDateOut,
+              date_out: cleanDateOut,
+              checkOutDate: cleanDateOut,
+
               timeOut: formatHHMM(timeOut) || getCurrentHHMM(),
               site: site || prevLog.site,
               workHours: workHours,
