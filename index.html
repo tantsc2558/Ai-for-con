@@ -3217,13 +3217,22 @@
             sfClean.includes(siteStr.trim())
           );
 
-          return matchSearch && matchSite;
+          // Hide completed clock-out entries so clocked-out employees automatically disappear from active check-in page
+          const isCompleted = l.completed === true || l.completed === "true" || (
+            l.timeIn && l.timeIn !== "" && 
+            l.timeOut && l.timeOut !== "" && l.timeOut !== "-" && l.timeOut !== "กำลังทำงาน"
+          );
+
+          // Unless user is explicitly typing a search query, hide completed clock-out records
+          const hideClockedOut = !searchQuery && isCompleted;
+
+          return matchSearch && matchSite && !hideClockedOut;
         });
 
         document.getElementById("itemCountBadge").innerText = `${filtered.length} รายการ`;
 
         if (filtered.length === 0) {
-          cardsContainer.innerHTML = renderEmptyState("ไม่พบประวัติลงเวลางานตามเงื่อนไขที่เลือก");
+          cardsContainer.innerHTML = renderEmptyState("ไม่มีพนักงานกำลังทำงานในขณะนี้ (ลงเวลาออกงานครบแล้ว)");
           return;
         }
 
