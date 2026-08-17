@@ -525,19 +525,6 @@
         <p class="text-xs text-slate-500 mt-1">กรอกรหัส Admin PIN 4 หลักเพื่อปลดล็อกสิทธิ์ผู้บริหาร</p>
       </div>
       
-      <!-- BIOMETRIC LOGIN BUTTON (FINGERPRINT / FACE ID) -->
-      <button type="button" onclick="triggerBiometricAuth()" 
-        class="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black rounded-2xl shadow-lg shadow-amber-500/35 border border-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer">
-        <i class="fa-solid fa-fingerprint text-base text-slate-950"></i>
-        <span>สแกนลายนิ้วมือ / Face ID ปลดล็อก</span>
-      </button>
-
-      <div class="relative flex py-0.5 items-center">
-        <div class="flex-grow border-t border-slate-200"></div>
-        <span class="flex-shrink mx-2 text-[10px] text-slate-400 font-medium">หรือใช้รหัส PIN 4 หลัก</span>
-        <div class="flex-grow border-t border-slate-200"></div>
-      </div>
-      
       <form onsubmit="handleAdminLogin(event)" class="space-y-3">
         <input type="password" id="adminPinInput" maxlength="4" pattern="[0-9]*" inputmode="numeric" required placeholder="••••"
           class="w-full text-center tracking-[0.5em] text-xl font-bold py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all" />
@@ -2668,61 +2655,6 @@
       }
 
       document.getElementById("photoViewerModal").classList.remove("hidden");
-    }
-
-    async function triggerBiometricAuth() {
-      if (!window.PublicKeyCredential) {
-        showToast("⚠️ อุปกรณ์ของคุณไม่รองรับการสแกนลายนิ้วมือ/Face ID กรุณาใช้รหัส PIN 4 หลัก", "error");
-        return;
-      }
-
-      showLoading("กำลังเตรียมตัวสแกนลายนิ้วมือ / Face ID...");
-      
-      let bioSuccess = false;
-      try {
-        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
-          const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-          if (isAvailable && navigator.credentials && navigator.credentials.get) {
-            const challenge = new Uint8Array(32);
-            window.crypto.getRandomValues(challenge);
-            
-            try {
-              const credential = await navigator.credentials.get({
-                publicKey: {
-                  challenge: challenge,
-                  timeout: 60000,
-                  userVerification: "required"
-                }
-              });
-              if (credential) {
-                bioSuccess = true;
-              }
-            } catch (credentialErr) {
-              console.warn("Biometric scan cancelled or failed:", credentialErr);
-            }
-          } else {
-            // Fallback for browsers with simulated biometric confirmation
-            bioSuccess = confirm("👆 กด 'ตกลง' เพื่อยืนยันการปลดล็อกผ่านลายนิ้วมือ / Face ID บนอุปกรณ์ของคุณ");
-          }
-        } else {
-          bioSuccess = confirm("👆 กด 'ตกลง' เพื่อยืนยันการปลดล็อกผ่านลายนิ้วมือ / Face ID บนอุปกรณ์ของคุณ");
-        }
-      } catch (err) {
-        console.warn("Biometric hardware error:", err);
-        bioSuccess = confirm("👆 กด 'ตกลง' เพื่อยืนยันการปลดล็อกผ่านลายนิ้วมือ / Face ID บนอุปกรณ์ของคุณ");
-      }
-
-      hideLoading();
-
-      if (bioSuccess) {
-        isAdminMode = true;
-        closeModal("adminAuthModal");
-        showToast("👆 ยืนยันลายนิ้วมือ / Face ID ปลดล็อกสิทธิ์ผู้บริหารสำเร็จ!", "success");
-        updateRoleBadge();
-        renderApp();
-      } else {
-        showToast("⚠️ ไม่พบการยืนยันลายนิ้วมือ/Face ID กรุณาสแกนอีกครั้ง หรือใส่รหัส PIN 4 หลัก", "error");
-      }
     }
 
     function toggleRoleModal() {
