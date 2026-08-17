@@ -2824,15 +2824,29 @@
         return;
       }
 
-      if (!isSilent) showLoading("กำลังโหลดข้อมูลจาก Google Sheets...");
+      if (!isSilent) showLoading("กำลังดึงข้อมูลล่าสุดจาก Google Sheets...");
       const refreshIcon = document.getElementById("refreshIcon");
       if (refreshIcon && !isSilent) refreshIcon.classList.add("spin-slow");
 
       try {
-        const cacheBuster = "t=" + new Date().getTime();
-        const fetchUrl = API_URL.includes("?") ? `${API_URL}&${cacheBuster}` : `${API_URL}?${cacheBuster}`;
-        const response = await fetch(fetchUrl, { cache: "no-store" });
-        const data = await response.json();
+        let data = null;
+        try {
+          const cacheBuster = "t=" + new Date().getTime();
+          const fetchUrl = API_URL.includes("?") ? `${API_URL}&${cacheBuster}` : `${API_URL}?${cacheBuster}`;
+          const response = await fetch(fetchUrl, { cache: "no-store" });
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch (getErr) {
+          console.warn("GET fetchInitialData failed, switching to POST fallback:", getErr);
+        }
+
+        // Fallback to HTTP POST if GET failed or returned incomplete payload
+        if (!data || (!data.logs && !data.employees)) {
+          data = await postApiRequest({ action: "getInitialData" });
+        }
+
+        if (!data) return;
 
         let empOverrides = {};
         try {
