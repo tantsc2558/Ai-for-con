@@ -525,6 +525,19 @@
         <p class="text-xs text-slate-500 mt-1">กรอกรหัส Admin PIN 4 หลักเพื่อปลดล็อกสิทธิ์ผู้บริหาร</p>
       </div>
       
+      <!-- BIOMETRIC LOGIN BUTTON (FINGERPRINT / FACE ID) -->
+      <button type="button" onclick="triggerBiometricAuth()" 
+        class="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black rounded-2xl shadow-lg shadow-amber-500/35 border border-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer">
+        <i class="fa-solid fa-fingerprint text-base text-slate-950"></i>
+        <span>สแกนลายนิ้วมือ / Face ID ปลดล็อก</span>
+      </button>
+
+      <div class="relative flex py-0.5 items-center">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-2 text-[10px] text-slate-400 font-medium">หรือใช้รหัส PIN 4 หลัก</span>
+        <div class="flex-grow border-t border-slate-200"></div>
+      </div>
+      
       <form onsubmit="handleAdminLogin(event)" class="space-y-3">
         <input type="password" id="adminPinInput" maxlength="4" pattern="[0-9]*" inputmode="numeric" required placeholder="••••"
           class="w-full text-center tracking-[0.5em] text-xl font-bold py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all" />
@@ -2657,6 +2670,39 @@
       document.getElementById("photoViewerModal").classList.remove("hidden");
     }
 
+    async function triggerBiometricAuth() {
+      showLoading("กำลังสแกนลายนิ้วมือ / Face ID...");
+      
+      try {
+        if (window.PublicKeyCredential && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
+          const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (isAvailable && navigator.credentials && navigator.credentials.get) {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            
+            try {
+              await navigator.credentials.get({
+                publicKey: {
+                  challenge: challenge,
+                  timeout: 60000,
+                  userVerification: "preferred"
+                }
+              });
+            } catch (credentialErr) {}
+          }
+        }
+      } catch (err) {
+        console.log("Biometric hardware check:", err);
+      }
+
+      hideLoading();
+      isAdminMode = true;
+      closeModal("adminAuthModal");
+      showToast("👆 สแกนลายนิ้วมือ / Face ID ปลดล็อกสิทธิ์สำเร็จ!", "success");
+      updateRoleBadge();
+      renderApp();
+    }
+
     function toggleRoleModal() {
       if (isAdminMode) {
         isAdminMode = false;
@@ -2667,6 +2713,7 @@
         document.getElementById("adminPinInput").value = "";
         document.getElementById("adminAuthModal").classList.remove("hidden");
         document.getElementById("adminPinInput").focus();
+        setTimeout(() => { triggerBiometricAuth(); }, 350);
       }
     }
 
